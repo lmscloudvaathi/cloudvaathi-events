@@ -34,7 +34,8 @@ export const Route = createFileRoute("/courses/$slug")({
 });
 
 function CourseDetail() {
-  const { course } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const course = findCourse(slug)!;
 
   return (
     <div className="relative min-h-screen">
