@@ -35,11 +35,15 @@ const envSchema = z
     }
   });
 
+export type ParsedEnv = z.infer<typeof envSchema>;
+
 type EnvRecord = Record<string, string | undefined>;
 
 /** Per Worker HTTP request: env bindings + one TiDB connection (Workers forbid sharing TCP across requests). */
 export type WorkerRequestStore = {
   env: EnvRecord;
+  /** Parsed once per request — avoids repeated Zod work on hot paths. */
+  parsedEnv?: ParsedEnv;
   mysqlConn: Connection | null;
   /** Single-flight while opening MySQL for this request */
   mysqlPending?: Promise<Connection>;
@@ -125,7 +129,10 @@ function envSource(): EnvRecord {
   return workerRequestAls.getStore()?.env ?? (process.env as EnvRecord);
 }
 
-export function getEnv() {
+export function getEnv(): ParsedEnv {
+  const store = workerRequestAls.getStore();
+  if (store?.parsedEnv) return store.parsedEnv;
+
   const parsed = envSchema.safeParse(envSource());
   if (!parsed.success) {
     throw new Error(
@@ -134,5 +141,7 @@ export function getEnv() {
         .join(", ")}`,
     );
   }
-  return parsed.data;
+  const data = parsed.data;
+  if (store) store.parsedEnv = data;
+  return data;
 }

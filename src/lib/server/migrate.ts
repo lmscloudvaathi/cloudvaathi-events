@@ -1,5 +1,5 @@
 import path from "node:path";
-import { ensureDatabaseExists, getOrCreateMysqlConnection } from "./db";
+import { openMysqlBootstrapConnection } from "./db";
 import { seedInitialData } from "./seeds";
 
 /** Embedded at build time — Workers have no project filesystem for `fs.readdir`. */
@@ -31,8 +31,7 @@ let bootstrapCompletedInIsolate = false;
 let bootstrapPromise: Promise<void> | null = null;
 
 async function runBootstrapOnce(): Promise<void> {
-  await ensureDatabaseExists();
-  const conn = await getOrCreateMysqlConnection();
+  const conn = await openMysqlBootstrapConnection();
   await conn.query(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,

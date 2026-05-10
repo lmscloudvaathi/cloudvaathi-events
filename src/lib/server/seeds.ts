@@ -4,8 +4,20 @@ import { getEnv } from "./env";
 import { courses, events } from "../mock-data";
 
 export async function seedInitialData() {
-  for (const c of courses) {
-    await dbQuery(
+  const countRows = await dbQuery<{ c: number | bigint; e: number | bigint }[]>(
+    `SELECT
+       (SELECT COUNT(*) FROM courses) AS c,
+       (SELECT COUNT(*) FROM events) AS e`,
+  );
+  const row = Array.isArray(countRows) ? countRows[0] : undefined;
+  const catalogExists =
+    row != null &&
+    Number((row as { c: number | bigint }).c) > 0 &&
+    Number((row as { e: number | bigint }).e) > 0;
+
+  if (!catalogExists) {
+    for (const c of courses) {
+      await dbQuery(
       `INSERT INTO courses
        (slug, title, tagline, description, level, duration, start_date, price, seats, enrolled, tags_json, instructor, modules_json, active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
@@ -29,11 +41,11 @@ export async function seedInitialData() {
         c.instructor,
         JSON.stringify(c.modules),
       ],
-    );
-  }
+      );
+    }
 
-  for (const e of events) {
-    await dbQuery(
+    for (const e of events) {
+      await dbQuery(
       `INSERT INTO events
        (slug, title, type, event_date, event_time, venue, price, seats, registered, description, speakers_json, active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
@@ -55,7 +67,8 @@ export async function seedInitialData() {
         e.description,
         JSON.stringify(e.speakers),
       ],
-    );
+      );
+    }
   }
 
   const env = getEnv();

@@ -35,18 +35,36 @@ function mysqlCommonOptions(): Pick<
   };
 }
 
-/** Connect without a schema and create TIDB_DATABASE if missing (first-time bootstrap). */
-export async function ensureDatabaseExists() {
+/**
+ * One TCP handshake for bootstrap: create schema if missing, USE it, attach to this request.
+ * Avoids one throwaway connect/close plus a second connection for migrations.
+ */
+export async function openMysqlBootstrapConnection(): Promise<mysql.Connection> {
+  const store = getWorkerRequestStore();
+  if (!store) {
+    throw new Error(
+      "TiDB bootstrap requested outside a Worker request context (missing runWithCloudflareBindings).",
+    );
+  }
+  if (store.mysqlConn) return store.mysqlConn;
+
   const env = getEnv();
   const conn = await mysql.createConnection({
     ...mysqlCommonOptions(),
   });
+  const name = env.TIDB_DATABASE.replace(/`/g, "");
   try {
-    const name = env.TIDB_DATABASE.replace(/`/g, "");
-    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${name}\` DEFAULT CHARACTER SET utf8mb4`);
-  } finally {
-    await conn.end();
+    await conn.query(
+      `CREATE DATABASE IF NOT EXISTS \`${name}\` DEFAULT CHARACTER SET utf8mb4`,
+    );
+    await conn.query(`USE \`${name}\``);
+  } catch (err) {
+    await conn.end().catch(() => {});
+    throw err;
   }
+  store.mysqlConn = conn;
+  store.mysqlPending = undefined;
+  return conn;
 }
 
 /**
