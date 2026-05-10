@@ -2,17 +2,25 @@ import nodemailer from "nodemailer";
 import { getEnv } from "./env";
 import { CONTACT_EMAIL } from "../site-config";
 
-const env = getEnv();
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: env.GMAIL_USER,
-    pass: env.GMAIL_APP_PASSWORD,
-  },
-});
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (!transporter) {
+    const env = getEnv();
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: env.GMAIL_USER,
+        pass: env.GMAIL_APP_PASSWORD,
+      },
+    });
+  }
+  return transporter;
+}
 
 export async function sendOtpEmail(email: string, code: string) {
-  await transporter.sendMail({
+  const env = getEnv();
+  await getTransporter().sendMail({
     from: env.GMAIL_USER,
     to: email,
     subject: "Cloud Vaathi OTP Verification",
@@ -43,7 +51,8 @@ export async function sendEnrollmentConfirmationEmail(input: {
       ? `You're enrolled — ${input.itemTitle}`
       : `Enrollment confirmed — ${input.itemTitle}`;
 
-  await transporter.sendMail({
+  const env = getEnv();
+  await getTransporter().sendMail({
     from: env.GMAIL_USER,
     to: input.to,
     replyTo: CONTACT_EMAIL,
@@ -68,7 +77,8 @@ export async function sendRegistrationPendingEmail(input: {
   amount: number;
 }) {
   const kind = input.itemKind === "course" ? "course" : "event";
-  await transporter.sendMail({
+  const env = getEnv();
+  await getTransporter().sendMail({
     from: env.GMAIL_USER,
     to: input.to,
     replyTo: CONTACT_EMAIL,

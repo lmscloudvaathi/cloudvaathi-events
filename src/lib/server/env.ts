@@ -35,9 +35,37 @@ const envSchema = z
 
 let cachedEnv: z.infer<typeof envSchema> | null = null;
 
+/** Populated from the Worker `env` argument (Cloudflare). Local dev uses `.env` → `process.env` only. */
+let bindingOverlay: Record<string, string> = {};
+
+/**
+ * Call once per request from `src/server.ts` before any server code runs.
+ * Cloudflare bindings are not always visible on `process.env` until copied here.
+ */
+export function applyCloudflareWorkerBindings(env: unknown) {
+  bindingOverlay = {};
+  if (env && typeof env === "object") {
+    for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
+      if (value == null) continue;
+      const t = typeof value;
+      if (t === "string" || t === "number" || t === "boolean") {
+        bindingOverlay[key] = String(value);
+      }
+    }
+  }
+  cachedEnv = null;
+  if (typeof process !== "undefined" && process.env) {
+    Object.assign(process.env, bindingOverlay);
+  }
+}
+
+function envSource(): Record<string, string | undefined> {
+  return { ...(process.env as Record<string, string | undefined>), ...bindingOverlay };
+}
+
 export function getEnv() {
   if (cachedEnv) return cachedEnv;
-  const parsed = envSchema.safeParse(process.env);
+  const parsed = envSchema.safeParse(envSource());
   if (!parsed.success) {
     throw new Error(
       `Invalid environment configuration: ${parsed.error.issues
