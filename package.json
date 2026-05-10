@@ -11,7 +11,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cf:push-secrets": "node scripts/push-cloudflare-secrets.mjs",
+    "deploy": "npm run build && npx wrangler deploy"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
