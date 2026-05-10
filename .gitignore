@@ -8,6 +8,10 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+
+# CI (Cloudflare) uses npm + package-lock.json; a stale bun.lock breaks frozen Bun installs.
+bun.lock
+
 dist
 dist-ssr
 .output
