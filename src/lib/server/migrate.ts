@@ -1,7 +1,22 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import { ensureDatabaseExists, getDbPool } from "./db";
 import { seedInitialData } from "./seeds";
+
+/** Embedded at build time — Workers have no project filesystem for `fs.readdir`. */
+const migrationSqlByPath = import.meta.glob<string>("./migrations/*.sql", {
+  eager: true,
+  query: "?raw",
+  import: "default",
+});
+
+function sortedMigrations(): { name: string; sql: string }[] {
+  return Object.entries(migrationSqlByPath)
+    .map(([filePath, sql]) => ({
+      name: path.basename(filePath.replace(/\\/g, "/")),
+      sql,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 let initialized = false;
 
@@ -17,18 +32,15 @@ export async function ensureDatabaseReady() {
     )
   `);
 
-  const dir = path.resolve(process.cwd(), "src/lib/server/migrations");
-  const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
-  for (const file of files) {
-    const [rows] = await pool.query("SELECT name FROM _migrations WHERE name = ?", [file]);
+  for (const { name, sql } of sortedMigrations()) {
+    const [rows] = await pool.query("SELECT name FROM _migrations WHERE name = ?", [name]);
     if (Array.isArray(rows) && rows.length > 0) continue;
-    const sql = await fs.readFile(path.join(dir, file), "utf-8");
     for (const statement of sql.split(/;\s*\n/)) {
       const trimmed = statement.trim();
       if (!trimmed) continue;
       await pool.query(trimmed);
     }
-    await pool.query("INSERT INTO _migrations (name) VALUES (?)", [file]);
+    await pool.query("INSERT INTO _migrations (name) VALUES (?)", [name]);
   }
 
   await seedInitialData();
