@@ -30,6 +30,9 @@ export async function ensureDatabaseExists() {
     user: env.TIDB_USER,
     password: env.TIDB_PASSWORD,
     ssl: sslOptions(),
+    namedPlaceholders: false,
+    // mysql2 default parsers call `new Function()` (blocked on Workers).
+    disableEval: true,
   });
   try {
     const name = env.TIDB_DATABASE.replace(/`/g, "");
@@ -55,6 +58,8 @@ export function getDbPool() {
     // `namedPlaceholders: true` pulls in mysql2 code paths that call `new Function()` —
     // Workers disallow eval / dynamic codegen at runtime ("Code generation from strings disallowed").
     namedPlaceholders: false,
+    // Use static row parsers (see mysql2 `disableEval`; required on Cloudflare Workers).
+    disableEval: true,
   });
 
   return pool;
