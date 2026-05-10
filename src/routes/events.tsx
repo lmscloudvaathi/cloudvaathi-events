@@ -1,11 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
-import { events, formatINR } from "@/lib/mock-data";
+import { formatINR } from "@/lib/mock-data";
+import { getEventsFn } from "@/lib/rpc";
 
 export const Route = createFileRoute("/events")({
+  loader: async () => ({ events: await getEventsFn() }),
   head: () => ({
     meta: [
       { title: "Events — Cloud Vaathi" },
@@ -16,6 +18,11 @@ export const Route = createFileRoute("/events")({
 });
 
 function EventsPage() {
+  const location = useLocation();
+  const { events } = Route.useLoaderData();
+  if (location.pathname !== "/events") {
+    return <Outlet />;
+  }
   return (
     <div className="relative min-h-screen">
       <AuroraBg />
@@ -56,11 +63,22 @@ function EventsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-3">
+                <div className="flex flex-col items-end gap-2">
                   <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(e.price)}</span>
-                  <button className="inline-flex items-center gap-2 rounded-lg bg-gradient-neon px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">
+                  <Link
+                    to="/events/$slug"
+                    params={{ slug: e.slug }}
+                    className="inline-flex items-center gap-2 rounded-md border border-border/60 px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60"
+                  >
+                    View details
+                  </Link>
+                  <Link
+                    to="/register/$slug"
+                    params={{ slug: e.slug }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-neon px-5 py-2.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03]"
+                  >
                     Register
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>

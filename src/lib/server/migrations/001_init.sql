@@ -1,0 +1,111 @@
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  email VARCHAR(180) NOT NULL UNIQUE,
+  phone VARCHAR(30) DEFAULT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+  email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS otp_codes (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  email VARCHAR(180) NOT NULL,
+  code VARCHAR(10) NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  consumed_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_otp_email_created (email, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(140) NOT NULL UNIQUE,
+  title VARCHAR(180) NOT NULL,
+  tagline VARCHAR(240) NOT NULL,
+  description TEXT NOT NULL,
+  level ENUM('Beginner', 'Intermediate', 'Advanced') NOT NULL,
+  duration VARCHAR(80) NOT NULL,
+  start_date DATE NOT NULL,
+  price INT NOT NULL,
+  seats INT NOT NULL,
+  enrolled INT NOT NULL DEFAULT 0,
+  tags_json JSON NOT NULL,
+  instructor VARCHAR(120) NOT NULL,
+  modules_json JSON NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(140) NOT NULL UNIQUE,
+  title VARCHAR(180) NOT NULL,
+  type ENUM('Workshop', 'Tech Talk', 'Hackathon', 'Meetup') NOT NULL,
+  event_date DATE NOT NULL,
+  event_time VARCHAR(80) NOT NULL,
+  venue VARCHAR(180) NOT NULL,
+  price INT NOT NULL,
+  seats INT NOT NULL,
+  registered INT NOT NULL DEFAULT 0,
+  description TEXT NOT NULL,
+  speakers_json JSON NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_ref VARCHAR(80) NOT NULL UNIQUE,
+  user_id BIGINT NOT NULL,
+  item_type ENUM('course', 'event') NOT NULL,
+  item_slug VARCHAR(140) NOT NULL,
+  amount INT NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  status ENUM('created', 'paid', 'failed') NOT NULL DEFAULT 'created',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_ref VARCHAR(80) NOT NULL UNIQUE,
+  razorpay_order_id VARCHAR(120) NOT NULL UNIQUE,
+  razorpay_payment_id VARCHAR(120) DEFAULT NULL UNIQUE,
+  razorpay_signature VARCHAR(255) DEFAULT NULL,
+  amount INT NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  status ENUM('created', 'paid', 'failed') NOT NULL DEFAULT 'created',
+  email_sent TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS enrollments (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  item_type ENUM('course', 'event') NOT NULL,
+  item_slug VARCHAR(140) NOT NULL,
+  order_ref VARCHAR(80) NOT NULL,
+  amount INT NOT NULL,
+  payment_status ENUM('Paid', 'Pending', 'Refunded') NOT NULL DEFAULT 'Pending',
+  registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_enrollment (user_id, item_type, item_slug),
+  CONSTRAINT fk_enrollment_user FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  admin_user_id BIGINT NOT NULL,
+  action VARCHAR(120) NOT NULL,
+  entity_type VARCHAR(60) NOT NULL,
+  entity_id VARCHAR(120) NOT NULL,
+  payload_json JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_audit_admin FOREIGN KEY (admin_user_id) REFERENCES users(id)
+);

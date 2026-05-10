@@ -12,4 +12,18 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  vite: {
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const path = req.url?.split("?")[0];
+        if (path === "/favicon.ico") {
+          res.statusCode = 302;
+          res.setHeader("Location", "/favicon.svg");
+          res.end();
+          return;
+        }
+        next();
+      });
+    },
+  },
 });

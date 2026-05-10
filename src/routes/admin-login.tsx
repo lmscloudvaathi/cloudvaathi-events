@@ -1,23 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Shield } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
-import { safeRedirectPath } from "@/lib/auth-redirect";
-import { loginFn } from "@/lib/rpc";
+import { adminLoginFn } from "@/lib/rpc";
 import { setSessionToken } from "@/lib/session-client";
 
-export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
-  }),
-  head: () => ({ meta: [{ title: "Sign in — Cloud Vaathi" }] }),
-  component: LoginPage,
+export const Route = createFileRoute("/admin-login")({
+  head: () => ({ meta: [{ title: "Admin sign in — Cloud Vaathi" }, { name: "robots", content: "noindex" }] }),
+  component: AdminLoginPage,
 });
 
-function LoginPage() {
+function AdminLoginPage() {
   const navigate = useNavigate();
-  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,9 +25,14 @@ function LoginPage() {
 
       <div className="flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-md rounded-2xl glass p-8 glow-violet">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-neon-cyan">// authenticate</p>
-          <h1 className="mt-3 font-display text-3xl font-bold">Welcome back</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to register for courses & events.</p>
+          <div className="flex items-center gap-2 text-neon-cyan">
+            <Shield className="h-5 w-5" />
+            <p className="font-mono text-xs uppercase tracking-[0.3em]">// admin console</p>
+          </div>
+          <h1 className="mt-3 font-display text-3xl font-bold">Administrator sign in</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Use the admin account from your server configuration. This is separate from member sign-in.
+          </p>
 
           <form
             className="mt-8 space-y-4"
@@ -40,11 +40,10 @@ function LoginPage() {
               e.preventDefault();
               setError("");
               setLoading(true);
-              loginFn({ data: { email, password } })
+              adminLoginFn({ data: { email, password } })
                 .then((res) => {
                   setSessionToken(res.token);
-                  const next = safeRedirectPath(redirect) ?? "/";
-                  navigate({ to: next });
+                  navigate({ to: "/admin" });
                 })
                 .catch((err) => {
                   setError(err instanceof Error ? err.message : "Login failed");
@@ -52,7 +51,7 @@ function LoginPage() {
                 .finally(() => setLoading(false));
             }}
           >
-            <Field icon={Mail} label="Email" type="email" value={email} onChange={setEmail} placeholder="you@cloud.dev" />
+            <Field icon={Mail} label="Admin email" type="email" value={email} onChange={setEmail} placeholder="admin@yourcompany.com" />
             <Field icon={Lock} label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
 
             {error ? <p className="text-xs text-destructive">{error}</p> : null}
@@ -61,24 +60,14 @@ function LoginPage() {
               disabled={loading}
               className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.02]"
             >
-              Sign in <ArrowRight className="h-4 w-4" />
+              Sign in to admin <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            New here?{" "}
-            <Link
-              to="/signup"
-              search={redirect ? { redirect } : {}}
-              className="font-semibold text-primary hover:underline"
-            >
-              Create an account
-            </Link>
-          </p>
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            Administrator?{" "}
-            <Link to="/admin-login" className="font-semibold text-primary hover:underline">
-              Admin sign in
+            Member or student?{" "}
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Regular sign in
             </Link>
           </p>
         </div>
@@ -87,7 +76,21 @@ function LoginPage() {
   );
 }
 
-function Field({ icon: Icon, label, type, value, onChange, placeholder }: { icon: React.ComponentType<{ className?: string }>; label: string; type: string; value: string; onChange: (v: string) => void; placeholder: string; }) {
+function Field({
+  icon: Icon,
+  label,
+  type,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  type: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-muted-foreground">{label}</span>

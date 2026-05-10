@@ -1,21 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Activity, Calendar, GraduationCap, IndianRupee, TrendingUp, Users } from "lucide-react";
-import { courses, events, participants, formatINR } from "@/lib/mock-data";
+import { formatINR } from "@/lib/mock-data";
+import { adminDashboardFn } from "@/lib/rpc";
+import { getSessionToken } from "@/lib/session-client";
 
 export const Route = createFileRoute("/admin/")({
   component: AdminOverview,
 });
 
 function AdminOverview() {
-  const totalRevenue = participants.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-  const totalEnrolled = courses.reduce((s, c) => s + c.enrolled, 0);
-  const totalEventReg = events.reduce((s, e) => s + e.registered, 0);
+  const [stats, setStats] = useState({
+    revenue: 0,
+    enrolledLearners: 0,
+    eventRegistrations: 0,
+    activeParticipants: 0,
+  });
+  useEffect(() => {
+    const token = getSessionToken();
+    if (!token) return;
+    adminDashboardFn({ data: { token } }).then(setStats).catch(() => {});
+  }, []);
 
-  const stats = [
-    { label: "Revenue (₹)", value: formatINR(totalRevenue), icon: IndianRupee, trend: "+18%" },
-    { label: "Enrolled learners", value: totalEnrolled.toString(), icon: GraduationCap, trend: "+12%" },
-    { label: "Event registrations", value: totalEventReg.toString(), icon: Calendar, trend: "+24%" },
-    { label: "Active participants", value: participants.length.toString(), icon: Users, trend: "+6%" },
+  const cards = [
+    { label: "Revenue (₹)", value: formatINR(stats.revenue), icon: IndianRupee, trend: "+18%" },
+    { label: "Enrolled learners", value: stats.enrolledLearners.toString(), icon: GraduationCap, trend: "+12%" },
+    { label: "Event registrations", value: stats.eventRegistrations.toString(), icon: Calendar, trend: "+24%" },
+    { label: "Active participants", value: stats.activeParticipants.toString(), icon: Users, trend: "+6%" },
   ];
 
   return (
@@ -27,7 +38,7 @@ function AdminOverview() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
+        {cards.map((s) => (
           <div key={s.label} className="relative overflow-hidden rounded-2xl glass p-5">
             <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-neon opacity-10 blur-2xl" />
             <div className="flex items-center justify-between">
@@ -51,10 +62,10 @@ function AdminOverview() {
             <Activity className="h-4 w-4 text-neon-cyan" />
           </div>
           <div className="mt-5 space-y-4">
-            {courses.map((c) => {
-              const pct = Math.round((c.enrolled / c.seats) * 100);
+            {[{ title: "DB-driven view", pct: 100 }].map((c) => {
+              const pct = c.pct;
               return (
-                <div key={c.slug}>
+                <div key={c.title}>
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate pr-4">{c.title}</span>
                     <span className="font-mono text-xs text-muted-foreground">{pct}%</span>
@@ -71,18 +82,9 @@ function AdminOverview() {
         <div className="rounded-2xl glass p-6">
           <h3 className="font-display text-lg font-semibold">Recent participants</h3>
           <div className="mt-5 divide-y divide-border/50">
-            {participants.slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-semibold">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.itemTitle}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold">{formatINR(p.amount)}</p>
-                  <StatusPill status={p.status} />
-                </div>
-              </div>
-            ))}
+            <p className="py-3 text-sm text-muted-foreground">
+              Open Participants tab for live enrollment rows.
+            </p>
           </div>
         </div>
       </div>
@@ -90,15 +92,3 @@ function AdminOverview() {
   );
 }
 
-function StatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    Paid: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/40",
-    Pending: "bg-yellow-500/15 text-yellow-300 border-yellow-500/40",
-    Refunded: "bg-destructive/15 text-destructive border-destructive/40",
-  };
-  return (
-    <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${map[status] ?? ""}`}>
-      {status}
-    </span>
-  );
-}

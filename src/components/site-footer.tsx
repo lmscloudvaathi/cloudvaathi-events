@@ -1,7 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Cloud, Github, Linkedin, Twitter } from "lucide-react";
+import { CONTACT_EMAIL } from "@/lib/site-config";
+import { useSessionUser } from "@/hooks/use-session-user";
 
 export function SiteFooter() {
+  const { user } = useSessionUser();
+
   return (
     <footer className="mt-32 border-t border-border/50 bg-surface/40">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
@@ -33,14 +37,20 @@ export function SiteFooter() {
           <ul className="mt-4 space-y-2 text-sm">
             <li><Link to="/courses" className="hover:text-primary">Courses</Link></li>
             <li><Link to="/events" className="hover:text-primary">Events</Link></li>
-            <li><Link to="/login" className="hover:text-primary">Sign in</Link></li>
+            {!user ? (
+              <li><Link to="/login" className="hover:text-primary">Sign in</Link></li>
+            ) : null}
           </ul>
         </div>
 
         <div>
           <h4 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Contact</h4>
           <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-            <li>hello@cloudvaathi.dev</li>
+            <li>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-primary">
+                {CONTACT_EMAIL}
+              </a>
+            </li>
             <li>Chennai · Bengaluru</li>
           </ul>
         </div>

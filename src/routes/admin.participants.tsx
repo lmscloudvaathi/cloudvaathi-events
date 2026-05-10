@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Search } from "lucide-react";
-import { participants, formatINR } from "@/lib/mock-data";
+import { formatINR } from "@/lib/mock-data";
+import { adminParticipantsFn } from "@/lib/rpc";
+import { getSessionToken } from "@/lib/session-client";
 
 export const Route = createFileRoute("/admin/participants")({
   component: AdminParticipants,
@@ -10,15 +12,34 @@ export const Route = createFileRoute("/admin/participants")({
 function AdminParticipants() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"All" | "Course" | "Event">("All");
+  const [participants, setParticipants] = useState<
+    Array<{
+      id: number;
+      name: string;
+      email: string;
+      phone: string | null;
+      item_type: "course" | "event";
+      item_slug: string;
+      amount: number;
+      payment_status: "Paid" | "Pending" | "Refunded";
+      registered_at: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    const token = getSessionToken();
+    if (!token) return;
+    adminParticipantsFn({ data: { token } }).then(setParticipants).catch(() => {});
+  }, []);
 
   const rows = useMemo(() => {
     return participants.filter((p) => {
-      if (filter !== "All" && p.itemType !== filter) return false;
+      if (filter !== "All" && (p.item_type === "course" ? "Course" : "Event") !== filter) return false;
       if (!q) return true;
       const s = q.toLowerCase();
-      return p.name.toLowerCase().includes(s) || p.email.toLowerCase().includes(s) || p.itemTitle.toLowerCase().includes(s);
+      return p.name.toLowerCase().includes(s) || p.email.toLowerCase().includes(s) || p.item_slug.toLowerCase().includes(s);
     });
-  }, [q, filter]);
+  }, [participants, q, filter]);
 
   return (
     <div className="space-y-8">
@@ -73,19 +94,21 @@ function AdminParticipants() {
             <tbody className="divide-y divide-border/40">
               {rows.map((p) => (
                 <tr key={p.id} className="transition-colors hover:bg-surface/40">
-                  <td className="px-5 py-4 font-mono text-xs text-muted-foreground">{p.id}</td>
+                  <td className="px-5 py-4 font-mono text-xs text-muted-foreground">P-{p.id}</td>
                   <td className="px-5 py-4 font-semibold">{p.name}</td>
                   <td className="px-5 py-4">
                     <p className="text-xs">{p.email}</p>
-                    <p className="text-xs text-muted-foreground">{p.phone}</p>
+                    <p className="text-xs text-muted-foreground">{p.phone ?? "-"}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <p className="text-xs">{p.itemTitle}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-neon-cyan">{p.itemType}</p>
+                    <p className="text-xs">{p.item_slug}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-neon-cyan">
+                      {p.item_type === "course" ? "Course" : "Event"}
+                    </p>
                   </td>
                   <td className="px-5 py-4 font-semibold">{formatINR(p.amount)}</td>
-                  <td className="px-5 py-4"><StatusPill status={p.status} /></td>
-                  <td className="px-5 py-4 text-muted-foreground">{p.registeredAt}</td>
+                  <td className="px-5 py-4"><StatusPill status={p.payment_status} /></td>
+                  <td className="px-5 py-4 text-muted-foreground">{new Date(p.registered_at).toLocaleDateString("en-IN")}</td>
                 </tr>
               ))}
               {rows.length === 0 && (

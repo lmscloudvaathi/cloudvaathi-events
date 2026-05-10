@@ -1,11 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Calendar, Cpu, GraduationCap, Rocket, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowRight, Calendar, Cpu, GraduationCap, LayoutList, Rocket, Sparkles, Users, Zap } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
-import { courses, events, formatINR } from "@/lib/mock-data";
+import { formatINR } from "@/lib/mock-data";
+import { getCoursesFn, getEventsFn } from "@/lib/rpc";
+import { useSessionUser } from "@/hooks/use-session-user";
 
 export const Route = createFileRoute("/")({
+  loader: async () => {
+    const [courses, events] = await Promise.all([getCoursesFn(), getEventsFn()]);
+    return { courses, events };
+  },
   head: () => ({
     meta: [
       { title: "Cloud Vaathi — Live cloud, DevOps & AI infra cohorts" },
@@ -18,8 +24,11 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { courses, events } = Route.useLoaderData();
+  const { user, loading: sessionLoading } = useSessionUser();
   const featuredCourses = courses.slice(0, 3);
   const upcomingEvents = events.slice(0, 3);
+  const signedIn = !sessionLoading && !!user;
 
   return (
     <div className="relative min-h-screen">
@@ -179,16 +188,47 @@ function HomePage() {
       {/* CTA */}
       <section className="px-4 sm:px-6 py-20">
         <div className="mx-auto max-w-5xl rounded-3xl glass p-12 text-center glow-violet">
-          <h2 className="font-display text-4xl font-bold sm:text-5xl">Ready to ship at cloud scale?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Join the next cohort and build with engineers from across India. Limited seats — register early.
-          </p>
-          <Link
-            to="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-neon px-8 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
-          >
-            Create your account <ArrowRight className="h-4 w-4" />
-          </Link>
+          {signedIn ? (
+            <>
+              <h2 className="font-display text-4xl font-bold sm:text-5xl">Welcome back</h2>
+              <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+                Explore live cohorts and tech events, or open your registrations to continue where you left off.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  to="/courses"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-neon px-8 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
+                >
+                  Browse courses <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to="/events"
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-8 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/60"
+                >
+                  <Calendar className="h-4 w-4" /> View events
+                </Link>
+              </div>
+              <Link
+                to="/my-registrations"
+                className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              >
+                <LayoutList className="h-4 w-4" /> My registrations
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 className="font-display text-4xl font-bold sm:text-5xl">Ready to ship at cloud scale?</h2>
+              <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+                Join the next cohort and build with engineers from across India. Limited seats — register early.
+              </p>
+              <Link
+                to="/signup"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-neon px-8 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
+              >
+                Create your account <ArrowRight className="h-4 w-4" />
+              </Link>
+            </>
+          )}
         </div>
       </section>
 

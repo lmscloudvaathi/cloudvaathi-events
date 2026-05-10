@@ -1,11 +1,21 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Clock, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
-import { courses, formatINR } from "@/lib/mock-data";
+import { formatINR } from "@/lib/mock-data";
+import { getCoursesFn } from "@/lib/rpc";
+
+function formatStartDate(value: string) {
+  if (!value) return "TBD";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? "TBD"
+    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export const Route = createFileRoute("/courses")({
+  loader: async () => ({ courses: await getCoursesFn() }),
   head: () => ({
     meta: [
       { title: "Courses — Cloud Vaathi" },
@@ -16,6 +26,11 @@ export const Route = createFileRoute("/courses")({
 });
 
 function CoursesPage() {
+  const location = useLocation();
+  const { courses } = Route.useLoaderData();
+  if (location.pathname !== "/courses") {
+    return <Outlet />;
+  }
   return (
     <div className="relative min-h-screen">
       <AuroraBg />
@@ -33,10 +48,8 @@ function CoursesPage() {
       <section className="px-4 sm:px-6 pb-24">
         <div className="mx-auto max-w-7xl grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => (
-            <Link
+            <div
               key={c.slug}
-              to="/courses/$slug"
-              params={{ slug: c.slug }}
               className="group relative flex flex-col overflow-hidden rounded-2xl glass p-6 transition-all hover:-translate-y-1 hover:glow-violet"
             >
               <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-neon opacity-10 blur-2xl transition-opacity group-hover:opacity-30" />
@@ -58,11 +71,27 @@ function CoursesPage() {
               <div className="mt-6 flex items-end justify-between border-t border-border/50 pt-5">
                 <div>
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Starts</div>
-                  <div className="text-sm font-semibold">{new Date(c.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                  <div className="text-sm font-semibold">{formatStartDate(c.startDate)}</div>
                 </div>
                 <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(c.price)}</span>
               </div>
-            </Link>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Link
+                  to="/courses/$slug"
+                  params={{ slug: c.slug }}
+                  className="inline-flex items-center justify-center rounded-md border border-border/60 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60"
+                >
+                  View details
+                </Link>
+                <Link
+                  to="/register/$slug"
+                  params={{ slug: c.slug }}
+                  className="inline-flex items-center justify-center rounded-md bg-gradient-neon px-3 py-2 text-xs font-semibold text-black"
+                >
+                  Register
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       </section>

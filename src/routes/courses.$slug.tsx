@@ -1,13 +1,23 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, Clock, GraduationCap, Users } from "lucide-react";
+import { CheckCircle2, Clock, GraduationCap, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
-import { findCourse, formatINR } from "@/lib/mock-data";
+import { CourseEnrollmentCta } from "@/components/course-enrollment-cta";
+import { formatINR } from "@/lib/mock-data";
+import { getCourseFn } from "@/lib/rpc";
+
+function formatDate(value: string) {
+  if (!value) return "TBD";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime())
+    ? "TBD"
+    : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
 
 export const Route = createFileRoute("/courses/$slug")({
-  loader: ({ params }) => {
-    const course = findCourse(params.slug);
+  loader: async ({ params }) => {
+    const course = await getCourseFn({ data: { slug: params.slug } });
     if (!course) throw notFound();
     return { course };
   },
@@ -34,8 +44,15 @@ export const Route = createFileRoute("/courses/$slug")({
 });
 
 function CourseDetail() {
-  const { slug } = Route.useParams();
-  const course = findCourse(slug)!;
+  const { course } = Route.useLoaderData();
+  const modules = course.modules.length
+    ? course.modules
+    : [
+        {
+          title: "Foundations",
+          lessons: ["Core concepts", "Hands-on setup", "Best practices"],
+        },
+      ];
 
   return (
     <div className="relative min-h-screen">
@@ -66,7 +83,7 @@ function CourseDetail() {
 
               <h2 className="mt-12 font-display text-2xl font-bold">What you'll learn</h2>
               <div className="mt-6 space-y-4">
-                {course.modules.map((m, i) => (
+                {modules.map((m, i) => (
                   <div key={i} className="rounded-xl glass p-5">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-xs text-neon-cyan">0{i + 1}</span>
@@ -87,26 +104,23 @@ function CourseDetail() {
             {/* Sticky enroll card */}
             <aside className="lg:sticky lg:top-24 self-start rounded-2xl glass p-6 glow-violet">
               <div className="font-display text-4xl font-bold text-gradient-neon">{formatINR(course.price)}</div>
-              <p className="mt-1 text-xs text-muted-foreground">One-time · GST included</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {course.price <= 0 ? "No payment required" : "One-time · GST included"}
+              </p>
 
               <div className="my-5 h-px bg-border/60" />
 
               <ul className="space-y-2 text-sm">
-                <li className="flex justify-between"><span className="text-muted-foreground">Starts</span><span className="font-semibold">{new Date(course.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">Starts</span><span className="font-semibold">{formatDate(course.startDate)}</span></li>
                 <li className="flex justify-between"><span className="text-muted-foreground">Instructor</span><span className="font-semibold">{course.instructor}</span></li>
                 <li className="flex justify-between"><span className="text-muted-foreground">Seats left</span><span className="font-semibold">{course.seats - course.enrolled}</span></li>
               </ul>
 
-              <Link
-                to="/register/$slug"
-                params={{ slug: course.slug }}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.02]"
-              >
-                Register & Pay <ArrowRight className="h-4 w-4" />
-              </Link>
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                You'll need to sign in to complete registration.
-              </p>
+              <CourseEnrollmentCta
+                key={course.slug}
+                slug={course.slug}
+                registerLabel={course.price <= 0 ? "Enroll free" : "Register & Pay"}
+              />
             </aside>
           </div>
         </div>

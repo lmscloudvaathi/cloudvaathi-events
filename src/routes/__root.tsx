@@ -35,6 +35,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const showDevDetail = import.meta.env.DEV;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -45,6 +46,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {showDevDetail ? (
+          <pre className="mt-4 max-h-[40vh] overflow-auto rounded-md bg-muted p-3 text-left text-xs whitespace-pre-wrap break-words">
+            {error.stack ?? error.message}
+          </pre>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -83,6 +89,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       {
+        rel: "icon",
+        href: "/favicon.svg",
+        type: "image/svg+xml",
+      },
+      {
         rel: "stylesheet",
         href: appCss,
       },
@@ -99,6 +110,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script src="https://checkout.razorpay.com/v1/checkout.js" />
       </head>
       <body>
         {children}

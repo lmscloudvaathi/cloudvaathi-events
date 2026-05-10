@@ -1,6 +1,9 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Calendar, Cloud, GraduationCap, LayoutDashboard, Users } from "lucide-react";
 import { AuroraBg } from "@/components/aurora-bg";
+import { meFn } from "@/lib/rpc";
+import { getSessionToken } from "@/lib/session-client";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin · Cloud Vaathi" }, { name: "robots", content: "noindex" }] }),
@@ -15,6 +18,55 @@ const adminNav = [
 ];
 
 function AdminLayout() {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    const token = getSessionToken();
+    if (!token) {
+      setAllowed(false);
+      return;
+    }
+    meFn({ data: { token } })
+      .then((res) => setAllowed(res.user?.role === "admin"))
+      .catch(() => setAllowed(false));
+  }, []);
+
+  if (allowed === null) {
+    return <div className="p-10 text-center">Loading admin...</div>;
+  }
+  if (!allowed) {
+    const token = getSessionToken();
+    return (
+      <div className="relative min-h-screen">
+        <AuroraBg />
+        <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center">
+          <h1 className="font-display text-2xl font-bold">Admin access required</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {token
+              ? "You are signed in, but this account is not an administrator."
+              : "Sign in with an administrator account to open the console."}
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              to="/admin-login"
+              className="inline-flex items-center justify-center rounded-lg bg-gradient-neon px-5 py-2.5 text-sm font-semibold text-primary-foreground glow-cyan"
+            >
+              Administrator sign in
+            </Link>
+            {token ? (
+              <Link to="/" className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-2.5 text-sm font-medium">
+                Back to site
+              </Link>
+            ) : (
+              <Link to="/login" className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-2.5 text-sm font-medium">
+                Member sign in
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen">
       <AuroraBg />
@@ -37,7 +89,7 @@ function AdminLayout() {
                 key={n.to}
                 to={n.to}
                 activeOptions={{ exact: n.exact }}
-                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground data-[status=active]:bg-gradient-neon data-[status=active]:text-primary-foreground data-[status=active]:font-semibold data-[status=active]:glow-cyan"
+                className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-all hover:bg-secondary/60 hover:text-foreground data-[status=active]:bg-gradient-neon data-[status=active]:font-semibold data-[status=active]:text-white data-[status=active]:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)] data-[status=active]:glow-cyan"
               >
                 <n.icon className="h-4 w-4" />
                 {n.label}
@@ -65,7 +117,7 @@ function AdminLayout() {
                 key={n.to}
                 to={n.to}
                 activeOptions={{ exact: n.exact }}
-                className="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground data-[status=active]:bg-gradient-neon data-[status=active]:text-primary-foreground"
+                className="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:text-foreground data-[status=active]:bg-gradient-neon data-[status=active]:font-semibold data-[status=active]:text-white data-[status=active]:[text-shadow:0_1px_2px_rgb(0_0_0/0.45)]"
               >
                 <n.icon className="h-3.5 w-3.5" /> {n.label}
               </Link>

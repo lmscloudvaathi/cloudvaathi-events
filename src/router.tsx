@@ -9,7 +9,10 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    // Keep route loader results warm briefly so moving between catalog pages does not constantly resuspend / refetch.
+    defaultStaleTime: 60_000,
+    // Avoid treating preloaded route data as instantly stale (reduces loader churn / flicker on navigation).
+    defaultPreloadStaleTime: 30_000,
   });
 
   return router;

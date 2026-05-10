@@ -10,21 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as MyRegistrationsRouteImport } from './routes/my-registrations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as RegisterSlugRouteImport } from './routes/register.$slug'
+import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
 import { Route as AdminParticipantsRouteImport } from './routes/admin.participants'
 import { Route as AdminEventsRouteImport } from './routes/admin.events'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
+import { Route as AdminEventsSlugRouteImport } from './routes/admin.events.$slug'
+import { Route as AdminCoursesSlugRouteImport } from './routes/admin.courses.$slug'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyRegistrationsRoute = MyRegistrationsRouteImport.update({
+  id: '/my-registrations',
+  path: '/my-registrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -40,6 +50,11 @@ const EventsRoute = EventsRouteImport.update({
 const CoursesRoute = CoursesRouteImport.update({
   id: '/courses',
   path: '/courses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -62,6 +77,11 @@ const RegisterSlugRoute = RegisterSlugRouteImport.update({
   path: '/register/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EventsRoute,
+} as any)
 const CoursesSlugRoute = CoursesSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -82,99 +102,141 @@ const AdminCoursesRoute = AdminCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEventsSlugRoute = AdminEventsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AdminEventsRoute,
+} as any)
+const AdminCoursesSlugRoute = AdminCoursesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AdminCoursesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
+  '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
-  '/admin/courses': typeof AdminCoursesRoute
-  '/admin/events': typeof AdminEventsRoute
+  '/admin/courses': typeof AdminCoursesRouteWithChildren
+  '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
   '/register/$slug': typeof RegisterSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/courses/$slug': typeof AdminCoursesSlugRoute
+  '/admin/events/$slug': typeof AdminEventsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
+  '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
-  '/admin/courses': typeof AdminCoursesRoute
-  '/admin/events': typeof AdminEventsRoute
+  '/admin/courses': typeof AdminCoursesRouteWithChildren
+  '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
   '/register/$slug': typeof RegisterSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/courses/$slug': typeof AdminCoursesSlugRoute
+  '/admin/events/$slug': typeof AdminEventsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
+  '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
-  '/admin/courses': typeof AdminCoursesRoute
-  '/admin/events': typeof AdminEventsRoute
+  '/admin/courses': typeof AdminCoursesRouteWithChildren
+  '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
   '/courses/$slug': typeof CoursesSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
   '/register/$slug': typeof RegisterSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/courses/$slug': typeof AdminCoursesSlugRoute
+  '/admin/events/$slug': typeof AdminEventsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
+    | '/my-registrations'
     | '/signup'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
     | '/courses/$slug'
+    | '/events/$slug'
     | '/register/$slug'
     | '/admin/'
+    | '/admin/courses/$slug'
+    | '/admin/events/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
+    | '/my-registrations'
     | '/signup'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
     | '/courses/$slug'
+    | '/events/$slug'
     | '/register/$slug'
     | '/admin'
+    | '/admin/courses/$slug'
+    | '/admin/events/$slug'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
+    | '/my-registrations'
     | '/signup'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
     | '/courses/$slug'
+    | '/events/$slug'
     | '/register/$slug'
     | '/admin/'
+    | '/admin/courses/$slug'
+    | '/admin/events/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   CoursesRoute: typeof CoursesRouteWithChildren
-  EventsRoute: typeof EventsRoute
+  EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
+  MyRegistrationsRoute: typeof MyRegistrationsRoute
   SignupRoute: typeof SignupRoute
   RegisterSlugRoute: typeof RegisterSlugRoute
 }
@@ -186,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-registrations': {
+      id: '/my-registrations'
+      path: '/my-registrations'
+      fullPath: '/my-registrations'
+      preLoaderRoute: typeof MyRegistrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -207,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/courses'
       fullPath: '/courses'
       preLoaderRoute: typeof CoursesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -237,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$slug': {
+      id: '/events/$slug'
+      path: '/$slug'
+      fullPath: '/events/$slug'
+      preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/courses/$slug': {
       id: '/courses/$slug'
       path: '/$slug'
@@ -265,19 +348,57 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCoursesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/events/$slug': {
+      id: '/admin/events/$slug'
+      path: '/$slug'
+      fullPath: '/admin/events/$slug'
+      preLoaderRoute: typeof AdminEventsSlugRouteImport
+      parentRoute: typeof AdminEventsRoute
+    }
+    '/admin/courses/$slug': {
+      id: '/admin/courses/$slug'
+      path: '/$slug'
+      fullPath: '/admin/courses/$slug'
+      preLoaderRoute: typeof AdminCoursesSlugRouteImport
+      parentRoute: typeof AdminCoursesRoute
+    }
   }
 }
 
+interface AdminCoursesRouteChildren {
+  AdminCoursesSlugRoute: typeof AdminCoursesSlugRoute
+}
+
+const AdminCoursesRouteChildren: AdminCoursesRouteChildren = {
+  AdminCoursesSlugRoute: AdminCoursesSlugRoute,
+}
+
+const AdminCoursesRouteWithChildren = AdminCoursesRoute._addFileChildren(
+  AdminCoursesRouteChildren,
+)
+
+interface AdminEventsRouteChildren {
+  AdminEventsSlugRoute: typeof AdminEventsSlugRoute
+}
+
+const AdminEventsRouteChildren: AdminEventsRouteChildren = {
+  AdminEventsSlugRoute: AdminEventsSlugRoute,
+}
+
+const AdminEventsRouteWithChildren = AdminEventsRoute._addFileChildren(
+  AdminEventsRouteChildren,
+)
+
 interface AdminRouteChildren {
-  AdminCoursesRoute: typeof AdminCoursesRoute
-  AdminEventsRoute: typeof AdminEventsRoute
+  AdminCoursesRoute: typeof AdminCoursesRouteWithChildren
+  AdminEventsRoute: typeof AdminEventsRouteWithChildren
   AdminParticipantsRoute: typeof AdminParticipantsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminCoursesRoute: AdminCoursesRoute,
-  AdminEventsRoute: AdminEventsRoute,
+  AdminCoursesRoute: AdminCoursesRouteWithChildren,
+  AdminEventsRoute: AdminEventsRouteWithChildren,
   AdminParticipantsRoute: AdminParticipantsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
@@ -295,15 +416,38 @@ const CoursesRouteChildren: CoursesRouteChildren = {
 const CoursesRouteWithChildren =
   CoursesRoute._addFileChildren(CoursesRouteChildren)
 
+interface EventsRouteChildren {
+  EventsSlugRoute: typeof EventsSlugRoute
+}
+
+const EventsRouteChildren: EventsRouteChildren = {
+  EventsSlugRoute: EventsSlugRoute,
+}
+
+const EventsRouteWithChildren =
+  EventsRoute._addFileChildren(EventsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   CoursesRoute: CoursesRouteWithChildren,
-  EventsRoute: EventsRoute,
+  EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
+  MyRegistrationsRoute: MyRegistrationsRoute,
   SignupRoute: SignupRoute,
   RegisterSlugRoute: RegisterSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

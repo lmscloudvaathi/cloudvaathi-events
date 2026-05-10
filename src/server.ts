@@ -9,6 +9,12 @@ type ServerEntry = {
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
+function formatErrorForDev(error: unknown): string | undefined {
+  if (process.env.NODE_ENV === "production") return undefined;
+  if (error instanceof Error) return error.stack ?? error.message;
+  return String(error);
+}
+
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
@@ -18,8 +24,8 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
-function brandedErrorResponse(): Response {
-  return new Response(renderErrorPage(), {
+function brandedErrorResponse(detail?: string): Response {
+  return new Response(renderErrorPage(detail), {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
@@ -66,15 +72,25 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+/** Browsers still probe `/favicon.ico`; serve our SVG via redirect so the console stays clean. */
+function faviconIcoRedirect(request: Request): Response | null {
+  const url = new URL(request.url);
+  if (url.pathname !== "/favicon.ico") return null;
+  return Response.redirect(new URL("/favicon.svg", url.origin).href, 302);
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const early = faviconIcoRedirect(request);
+      if (early) return early;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
-      return brandedErrorResponse();
+      return brandedErrorResponse(formatErrorForDev(error));
     }
   },
 };
