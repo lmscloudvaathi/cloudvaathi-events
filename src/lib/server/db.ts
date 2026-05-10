@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import mysql from "mysql2/promise";
-import { getEnv } from "./env";
-
-let pool: mysql.Pool | null = null;
+import { getEnv, getWorkerRequestStore } from "./env";
 
 function sslOptions() {
   const env = getEnv();
@@ -21,18 +19,27 @@ function sslOptions() {
   return { ca: fs.readFileSync(caPath, "utf-8") };
 }
 
-/** Connect without a schema and create TIDB_DATABASE if missing (first-time bootstrap). */
-export async function ensureDatabaseExists() {
+function mysqlCommonOptions(): Pick<
+  mysql.ConnectionOptions,
+  "host" | "port" | "user" | "password" | "ssl" | "namedPlaceholders" | "disableEval"
+> {
   const env = getEnv();
-  const conn = await mysql.createConnection({
+  return {
     host: env.TIDB_HOST,
     port: env.TIDB_PORT,
     user: env.TIDB_USER,
     password: env.TIDB_PASSWORD,
     ssl: sslOptions(),
     namedPlaceholders: false,
-    // mysql2 default parsers call `new Function()` (blocked on Workers).
     disableEval: true,
+  };
+}
+
+/** Connect without a schema and create TIDB_DATABASE if missing (first-time bootstrap). */
+export async function ensureDatabaseExists() {
+  const env = getEnv();
+  const conn = await mysql.createConnection({
+    ...mysqlCommonOptions(),
   });
   try {
     const name = env.TIDB_DATABASE.replace(/`/g, "");
@@ -42,30 +49,43 @@ export async function ensureDatabaseExists() {
   }
 }
 
-export function getDbPool() {
-  if (pool) return pool;
-  const env = getEnv();
+/**
+ * One MySQL connection per incoming Worker request (stored on AsyncLocalStorage).
+ * A global pool shares TCP across requests → Cloudflare error:
+ * "Cannot perform I/O on behalf of a different request".
+ */
+export async function getOrCreateMysqlConnection(): Promise<mysql.Connection> {
+  const store = getWorkerRequestStore();
+  if (!store) {
+    throw new Error(
+      "TiDB connection requested outside a Worker request context (missing runWithCloudflareBindings).",
+    );
+  }
+  if (store.mysqlConn) return store.mysqlConn;
 
-  pool = mysql.createPool({
-    host: env.TIDB_HOST,
-    port: env.TIDB_PORT,
-    user: env.TIDB_USER,
-    password: env.TIDB_PASSWORD,
-    database: env.TIDB_DATABASE,
-    ssl: sslOptions(),
-    connectionLimit: 10,
-    waitForConnections: true,
-    // `namedPlaceholders: true` pulls in mysql2 code paths that call `new Function()` —
-    // Workers disallow eval / dynamic codegen at runtime ("Code generation from strings disallowed").
-    namedPlaceholders: false,
-    // Use static row parsers (see mysql2 `disableEval`; required on Cloudflare Workers).
-    disableEval: true,
-  });
+  if (!store.mysqlPending) {
+    const env = getEnv();
+    store.mysqlPending = mysql
+      .createConnection({
+        ...mysqlCommonOptions(),
+        database: env.TIDB_DATABASE,
+      })
+      .then((c) => {
+        store.mysqlConn = c;
+        store.mysqlPending = undefined;
+        return c;
+      })
+      .catch((err) => {
+        store.mysqlPending = undefined;
+        throw err;
+      });
+  }
 
-  return pool;
+  return store.mysqlPending;
 }
 
 export async function dbQuery<T = unknown>(sql: string, values?: unknown) {
-  const [rows] = await getDbPool().query(sql, values);
+  const conn = await getOrCreateMysqlConnection();
+  const [rows] = await conn.query(sql, values);
   return rows as T;
 }

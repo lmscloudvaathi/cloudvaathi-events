@@ -2,7 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { runWithCloudflareBindings } from "./lib/server/env";
+import { runWithCloudflareBindings, closeWorkerMysql } from "./lib/server/env";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -93,6 +93,8 @@ export default {
       } catch (error) {
         console.error(error);
         return brandedErrorResponse(formatErrorForDev(error));
+      } finally {
+        await closeWorkerMysql();
       }
     });
   },

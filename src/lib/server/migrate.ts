@@ -1,5 +1,5 @@
 import path from "node:path";
-import { ensureDatabaseExists, getDbPool } from "./db";
+import { ensureDatabaseExists, getOrCreateMysqlConnection } from "./db";
 import { seedInitialData } from "./seeds";
 
 /** Embedded at build time — Workers have no project filesystem for `fs.readdir`. */
@@ -18,13 +18,10 @@ function sortedMigrations(): { name: string; sql: string }[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-let initialized = false;
-
 export async function ensureDatabaseReady() {
-  if (initialized) return;
   await ensureDatabaseExists();
-  const pool = getDbPool();
-  await pool.query(`
+  const conn = await getOrCreateMysqlConnection();
+  await conn.query(`
     CREATE TABLE IF NOT EXISTS _migrations (
       id BIGINT PRIMARY KEY AUTO_INCREMENT,
       name VARCHAR(255) NOT NULL UNIQUE,
@@ -33,16 +30,15 @@ export async function ensureDatabaseReady() {
   `);
 
   for (const { name, sql } of sortedMigrations()) {
-    const [rows] = await pool.query("SELECT name FROM _migrations WHERE name = ?", [name]);
+    const [rows] = await conn.query("SELECT name FROM _migrations WHERE name = ?", [name]);
     if (Array.isArray(rows) && rows.length > 0) continue;
     for (const statement of sql.split(/;\s*\n/)) {
       const trimmed = statement.trim();
       if (!trimmed) continue;
-      await pool.query(trimmed);
+      await conn.query(trimmed);
     }
-    await pool.query("INSERT INTO _migrations (name) VALUES (?)", [name]);
+    await conn.query("INSERT INTO _migrations (name) VALUES (?)", [name]);
   }
 
   await seedInitialData();
-  initialized = true;
 }

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { Connection } from "mysql2/promise";
 import { z } from "zod";
 
 const envSchema = z
@@ -36,8 +37,15 @@ const envSchema = z
 
 type EnvRecord = Record<string, string | undefined>;
 
-/** Per-request merged env (Workers run many concurrent requests; globals race). */
-const requestEnvAls = new AsyncLocalStorage<EnvRecord>();
+/** Per Worker HTTP request: env bindings + one TiDB connection (Workers forbid sharing TCP across requests). */
+export type WorkerRequestStore = {
+  env: EnvRecord;
+  mysqlConn: Connection | null;
+  /** Single-flight while opening MySQL for this request */
+  mysqlPending?: Promise<Connection>;
+};
+
+const workerRequestAls = new AsyncLocalStorage<WorkerRequestStore>();
 
 function flattenWorkerBindings(env: unknown): Record<string, string> {
   const out: Record<string, string> = {};
@@ -92,11 +100,29 @@ export function runWithCloudflareBindings<T>(env: unknown, fn: () => T): T {
     );
   }
   const merged = mergeEnvSource(flat);
-  return requestEnvAls.run(merged, fn);
+  const store: WorkerRequestStore = { env: merged, mysqlConn: null };
+  return workerRequestAls.run(store, fn);
+}
+
+/** Close TiDB connection for the current request (call from `fetch` finally). */
+export async function closeWorkerMysql(): Promise<void> {
+  const s = workerRequestAls.getStore();
+  if (!s?.mysqlConn) return;
+  try {
+    await s.mysqlConn.end();
+  } catch {
+    /* ignore */
+  }
+  s.mysqlConn = null;
+  s.mysqlPending = undefined;
+}
+
+export function getWorkerRequestStore(): WorkerRequestStore | undefined {
+  return workerRequestAls.getStore();
 }
 
 function envSource(): EnvRecord {
-  return requestEnvAls.getStore() ?? (process.env as EnvRecord);
+  return workerRequestAls.getStore()?.env ?? (process.env as EnvRecord);
 }
 
 export function getEnv() {
