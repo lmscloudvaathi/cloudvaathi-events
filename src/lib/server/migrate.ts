@@ -18,7 +18,19 @@ function sortedMigrations(): { name: string; sql: string }[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function ensureDatabaseReady() {
+/**
+ * One successful bootstrap per isolate (Worker instance). Re-running migrations + seeds on
+ * every RPC blows the CPU budget → Cloudflare Error 1102 "Worker exceeded resource limits".
+ *
+ * Cold isolates still run full bootstrap. After you add a new `.sql` migration, redeploy —
+ * new bundles spawn fresh isolates; warm isolates apply new files on next recycle, or retry deploy.
+ */
+let bootstrapCompletedInIsolate = false;
+
+/** Single-flight bootstrap promise (parallel loaders share one run). */
+let bootstrapPromise: Promise<void> | null = null;
+
+async function runBootstrapOnce(): Promise<void> {
   await ensureDatabaseExists();
   const conn = await getOrCreateMysqlConnection();
   await conn.query(`
@@ -41,4 +53,17 @@ export async function ensureDatabaseReady() {
   }
 
   await seedInitialData();
+}
+
+export async function ensureDatabaseReady(): Promise<void> {
+  if (bootstrapCompletedInIsolate) return;
+  bootstrapPromise ??= runBootstrapOnce()
+    .then(() => {
+      bootstrapCompletedInIsolate = true;
+    })
+    .catch((err) => {
+      bootstrapPromise = null;
+      throw err;
+    });
+  await bootstrapPromise;
 }
