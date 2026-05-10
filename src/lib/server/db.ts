@@ -52,7 +52,9 @@ export function getDbPool() {
     ssl: sslOptions(),
     connectionLimit: 10,
     waitForConnections: true,
-    namedPlaceholders: true,
+    // `namedPlaceholders: true` pulls in mysql2 code paths that call `new Function()` —
+    // Workers disallow eval / dynamic codegen at runtime ("Code generation from strings disallowed").
+    namedPlaceholders: false,
   });
 
   return pool;
