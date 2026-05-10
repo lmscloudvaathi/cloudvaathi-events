@@ -7,9 +7,17 @@ let pool: mysql.Pool | null = null;
 
 function sslOptions() {
   const env = getEnv();
-  const caPath = path.isAbsolute(env.TIDB_CA_PATH)
-    ? env.TIDB_CA_PATH
-    : path.resolve(process.cwd(), env.TIDB_CA_PATH);
+  const inline = env.TIDB_CA?.trim();
+  if (inline) {
+    return { ca: inline };
+  }
+  const caPathFromEnv = env.TIDB_CA_PATH?.trim();
+  if (!caPathFromEnv) {
+    throw new Error("TIDB_CA or TIDB_CA_PATH must be set for TLS");
+  }
+  const caPath = path.isAbsolute(caPathFromEnv)
+    ? caPathFromEnv
+    : path.resolve(process.cwd(), caPathFromEnv);
   return { ca: fs.readFileSync(caPath, "utf-8") };
 }
 

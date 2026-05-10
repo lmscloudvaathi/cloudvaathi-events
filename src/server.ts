@@ -79,8 +79,25 @@ function faviconIcoRedirect(request: Request): Response | null {
   return Response.redirect(new URL("/favicon.svg", url.origin).href, 302);
 }
 
+/**
+ * Cloudflare Workers pass secrets/vars on the `env` argument. Our server code and many
+ * dependencies read `process.env` (and modules like `mailer` call `getEnv()` at import
+ * time), so bindings must be merged before the first `getServerEntry()` import.
+ */
+function mergeCloudflareBindingsIntoProcessEnv(env: unknown) {
+  if (!env || typeof env !== "object") return;
+  for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
+    if (value == null) continue;
+    const t = typeof value;
+    if (t === "string" || t === "number" || t === "boolean") {
+      process.env[key] = String(value);
+    }
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    mergeCloudflareBindingsIntoProcessEnv(env);
     try {
       const early = faviconIcoRedirect(request);
       if (early) return early;
