@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { z } from "zod";
 
 const envSchema = z
@@ -33,38 +34,72 @@ const envSchema = z
     }
   });
 
-let cachedEnv: z.infer<typeof envSchema> | null = null;
+type EnvRecord = Record<string, string | undefined>;
 
-/** Populated from the Worker `env` argument (Cloudflare). Local dev uses `.env` → `process.env` only. */
-let bindingOverlay: Record<string, string> = {};
+/** Per-request merged env (Workers run many concurrent requests; globals race). */
+const requestEnvAls = new AsyncLocalStorage<EnvRecord>();
 
-/**
- * Call once per request from `src/server.ts` before any server code runs.
- * Cloudflare bindings are not always visible on `process.env` until copied here.
- */
-export function applyCloudflareWorkerBindings(env: unknown) {
-  bindingOverlay = {};
-  if (env && typeof env === "object") {
-    for (const [key, value] of Object.entries(env as Record<string, unknown>)) {
-      if (value == null) continue;
-      const t = typeof value;
-      if (t === "string" || t === "number" || t === "boolean") {
-        bindingOverlay[key] = String(value);
+function flattenWorkerBindings(env: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!env || typeof env !== "object") return out;
+  const o = env as Record<string, unknown>;
+  const keys = new Set<string>();
+  for (const k of Reflect.ownKeys(o)) {
+    if (typeof k === "string") keys.add(k);
+  }
+  for (const k in o) {
+    keys.add(k);
+  }
+  for (const key of keys) {
+    const value = o[key];
+    if (value == null) continue;
+    const t = typeof value;
+    if (t === "string" || t === "number" || t === "boolean") {
+      out[key] = String(value);
+      continue;
+    }
+    if (t === "object") {
+      const maybe = value as { get?: () => string };
+      if (typeof maybe.get === "function") {
+        try {
+          const s = maybe.get();
+          if (typeof s === "string") out[key] = s;
+        } catch {
+          /* ignore */
+        }
       }
     }
   }
-  cachedEnv = null;
-  if (typeof process !== "undefined" && process.env) {
-    Object.assign(process.env, bindingOverlay);
-  }
+  return out;
 }
 
-function envSource(): Record<string, string | undefined> {
-  return { ...(process.env as Record<string, string | undefined>), ...bindingOverlay };
+function mergeEnvSource(flat: Record<string, string>): EnvRecord {
+  return { ...(process.env as EnvRecord), ...flat };
+}
+
+/**
+ * Wrap the Worker fetch body so `getEnv()` sees this request's bindings only.
+ * Must wrap before any await that yields (otherwise concurrent requests overwrite globals).
+ */
+export function runWithCloudflareBindings<T>(env: unknown, fn: () => T): T {
+  const flat = flattenWorkerBindings(env);
+  if (
+    Object.keys(flat).length === 0 &&
+    process.env.NODE_ENV === "production"
+  ) {
+    console.warn(
+      "[env] Worker bindings object has no string keys. Add Variables & Secrets on this Worker in the Cloudflare dashboard (exact names: TIDB_HOST, …).",
+    );
+  }
+  const merged = mergeEnvSource(flat);
+  return requestEnvAls.run(merged, fn);
+}
+
+function envSource(): EnvRecord {
+  return requestEnvAls.getStore() ?? (process.env as EnvRecord);
 }
 
 export function getEnv() {
-  if (cachedEnv) return cachedEnv;
   const parsed = envSchema.safeParse(envSource());
   if (!parsed.success) {
     throw new Error(
@@ -73,6 +108,5 @@ export function getEnv() {
         .join(", ")}`,
     );
   }
-  cachedEnv = parsed.data;
-  return cachedEnv;
+  return parsed.data;
 }

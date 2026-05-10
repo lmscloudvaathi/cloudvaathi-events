@@ -2,7 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { applyCloudflareWorkerBindings } from "./lib/server/env";
+import { runWithCloudflareBindings } from "./lib/server/env";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -81,18 +81,19 @@ function faviconIcoRedirect(request: Request): Response | null {
 }
 
 export default {
-  async fetch(request: Request, env: unknown, ctx: unknown) {
-    applyCloudflareWorkerBindings(env);
-    try {
-      const early = faviconIcoRedirect(request);
-      if (early) return early;
+  fetch(request: Request, env: unknown, ctx: unknown) {
+    return runWithCloudflareBindings(env ?? {}, async () => {
+      try {
+        const early = faviconIcoRedirect(request);
+        if (early) return early;
 
-      const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
-    } catch (error) {
-      console.error(error);
-      return brandedErrorResponse(formatErrorForDev(error));
-    }
+        const handler = await getServerEntry();
+        const response = await handler.fetch(request, env, ctx);
+        return await normalizeCatastrophicSsrResponse(response);
+      } catch (error) {
+        console.error(error);
+        return brandedErrorResponse(formatErrorForDev(error));
+      }
+    });
   },
 };
