@@ -5,6 +5,7 @@ import {
   createOrderSchema,
   loginSchema,
   signUpSchema,
+  validateCouponSchema,
   verifyOtpSchema,
 } from "./validation";
 
@@ -168,7 +169,14 @@ export const createOrderFn = createServerFn({ method: "POST" })
     assertRateLimit(rateLimitTokenKey("create-order", data.token), 30, 10 * 60 * 1000);
     const user = decodeSessionToken(data.token);
     if (!user) throw new Error("Unauthorized");
-    return createOrder({ userId: user.id, itemType: data.itemType, itemSlug: data.itemSlug });
+    return createOrder({
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      itemType: data.itemType,
+      itemSlug: data.itemSlug,
+      couponCode: data.couponCode,
+    });
   });
 
 export const startRegistrationFn = createServerFn({ method: "POST" })
@@ -188,8 +196,44 @@ export const startRegistrationFn = createServerFn({ method: "POST" })
       itemSlug: data.itemSlug,
       userEmail: user.email,
       userName: user.name,
+      couponCode: data.couponCode,
     });
   });
+
+export const validateCouponFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => validateCouponSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { assertRateLimit, rateLimitTokenKey } = await import("./server/rate-limit");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { getPurchasableItem } = await import("./server/catalog");
+    const { resolveCouponForCheckout } = await import("./server/coupons");
+    await ensureDatabaseReady();
+    assertRateLimit(rateLimitTokenKey("validate-coupon", data.token), 60, 10 * 60 * 1000);
+    const user = decodeSessionToken(data.token);
+    if (!user) throw new Error("Unauthorized");
+    const item = await getPurchasableItem(data.itemType, data.itemSlug);
+    if (!item) throw new Error("Item not found");
+    if (item.amount <= 0) {
+      return { ok: false as const, message: "This item has no fee — no coupon needed." };
+    }
+    const r = await resolveCouponForCheckout(data.couponCode, data.itemType, data.itemSlug, item.amount);
+    if (!r.ok) return { ok: false as const, message: r.message };
+    return {
+      ok: true as const,
+      listAmount: r.listAmount,
+      discountAmount: r.discountAmount,
+      finalAmount: r.finalAmount,
+    };
+  });
+
+export const getCheckoutConfigFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { ensureDatabaseReady } = await import("./server/migrate");
+  const { getEnv } = await import("./server/env");
+  await ensureDatabaseReady();
+  const env = getEnv();
+  return { razorpayKeyId: env.RAZORPAY_KEY_ID };
+});
 
 export const completeFreeEnrollmentFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => createOrderSchema.parse(data))
@@ -493,5 +537,99 @@ export const adminHardDeleteEventFn = createServerFn({ method: "POST" })
     const user = decodeSessionToken(data.token);
     if (!user || user.role !== "admin") throw new Error("Forbidden");
     await adminHardDeleteEvent(data.slug);
+    return { ok: true };
+  });
+
+const couponScopeSchema = z.object({
+  item_type: z.enum(["course", "event"]),
+  item_slug: z.string().min(1).max(140),
+});
+
+export const adminCouponsFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => z.object({ token: z.string() }).parse(data))
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { adminListCoupons } = await import("./server/coupons");
+    await ensureDatabaseReady();
+    const user = decodeSessionToken(data.token);
+    if (!user || user.role !== "admin") throw new Error("Forbidden");
+    return adminListCoupons();
+  });
+
+export const adminCreateCouponFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        token: z.string(),
+        code: z.string().min(2).max(64),
+        description: z.string().max(255).optional(),
+        discount_type: z.enum(["percent", "fixed"]),
+        discount_value: z.number().int().nonnegative(),
+        max_uses: z.number().int().positive().nullable().optional(),
+        valid_from: z.string().max(32).nullable().optional(),
+        valid_until: z.string().max(32).nullable().optional(),
+        scopes: z.array(couponScopeSchema).min(1),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { adminCreateCoupon } = await import("./server/coupons");
+    await ensureDatabaseReady();
+    const user = decodeSessionToken(data.token);
+    if (!user || user.role !== "admin") throw new Error("Forbidden");
+    const { token: _t, ...body } = data;
+    await adminCreateCoupon(body);
+    return { ok: true };
+  });
+
+export const adminUpdateCouponFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        token: z.string(),
+        id: z.number().int().positive(),
+        description: z.string().max(255).optional(),
+        discount_type: z.enum(["percent", "fixed"]),
+        discount_value: z.number().int().nonnegative(),
+        max_uses: z.number().int().positive().nullable().optional(),
+        valid_from: z.string().max(32).nullable().optional(),
+        valid_until: z.string().max(32).nullable().optional(),
+        scopes: z.array(couponScopeSchema).min(1),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { adminUpdateCoupon } = await import("./server/coupons");
+    await ensureDatabaseReady();
+    const user = decodeSessionToken(data.token);
+    if (!user || user.role !== "admin") throw new Error("Forbidden");
+    const { token: _t, ...body } = data;
+    await adminUpdateCoupon(body);
+    return { ok: true };
+  });
+
+export const adminSetCouponActiveFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        token: z.string(),
+        id: z.number().int().positive(),
+        active: z.boolean(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { adminSetCouponActive } = await import("./server/coupons");
+    await ensureDatabaseReady();
+    const user = decodeSessionToken(data.token);
+    if (!user || user.role !== "admin") throw new Error("Forbidden");
+    await adminSetCouponActive(data.id, data.active);
     return { ok: true };
   });

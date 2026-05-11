@@ -3,9 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Lock, Mail } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
+import { Spinner } from "@/components/spinner";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { loadRegisterFormDraft, saveRegisterFormDraft } from "@/lib/register-form-storage";
-import { confirmPaymentFn, completeFreeEnrollmentFn, createOrderFn, getCourseFn, getEventsFn, myEnrollmentsFn, startRegistrationFn } from "@/lib/rpc";
+import { confirmPaymentFn, completeFreeEnrollmentFn, createOrderFn, getCheckoutConfigFn, getCourseFn, getEventsFn, myEnrollmentsFn, startRegistrationFn, validateCouponFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
 import { enrollmentItemTypeMatches, enrollmentSlugMatches, normalizeEnrollmentPaymentStatus } from "@/lib/enrollment-utils";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -26,6 +28,7 @@ export const Route = createFileRoute("/register/$slug")({
     return { course, event };
   },
   head: () => ({ meta: [{ title: "Register — Cloud Vaathi" }] }),
+  pendingComponent: RoutePendingFallback,
   component: RegisterPage,
   notFoundComponent: () => <div className="p-10 text-center">Item not found</div>,
 });
@@ -49,11 +52,32 @@ function RegisterPage() {
   >(undefined);
   const [draftReady, setDraftReady] = useState(false);
   const formInitKey = useRef<string | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponApplying, setCouponApplying] = useState(false);
+  const [appliedPricing, setAppliedPricing] = useState<{
+    listAmount: number;
+    discountAmount: number;
+    finalAmount: number;
+  } | null>(null);
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
+
+  const effectivePrice = appliedPricing?.finalAmount ?? item?.price ?? 0;
 
   useEffect(() => {
     formInitKey.current = null;
     setDraftReady(false);
+    setCouponInput("");
+    setCouponError("");
+    setAppliedPricing(null);
   }, [slug]);
+
+  useEffect(() => {
+    if (isFree) return;
+    getCheckoutConfigFn()
+      .then((c) => setRazorpayKeyId(c.razorpayKeyId))
+      .catch(() => setRazorpayKeyId(null));
+  }, [isFree]);
 
   useEffect(() => {
     function sync() {
@@ -151,6 +175,43 @@ function RegisterPage() {
     return () => window.clearTimeout(t);
   }, [form, draftReady, user, item, fieldsLocked]);
 
+  async function applyCoupon() {
+    setCouponError("");
+    if (!item || isFree) return;
+    const token = getSessionToken();
+    if (!token) {
+      setCouponError("Please sign in to apply a coupon.");
+      return;
+    }
+    const code = couponInput.trim();
+    if (!code) {
+      setCouponError("Enter a coupon code.");
+      setAppliedPricing(null);
+      return;
+    }
+    setCouponApplying(true);
+    try {
+      const r = await validateCouponFn({
+        data: { token, itemType, itemSlug: item.slug, couponCode: code },
+      });
+      if (!r.ok) {
+        setCouponError(r.message);
+        setAppliedPricing(null);
+        return;
+      }
+      setAppliedPricing({
+        listAmount: r.listAmount,
+        discountAmount: r.discountAmount,
+        finalAmount: r.finalAmount,
+      });
+    } catch (e) {
+      setCouponError(e instanceof Error ? e.message : "Coupon check failed");
+      setAppliedPricing(null);
+    } finally {
+      setCouponApplying(false);
+    }
+  }
+
   async function onFreeEnroll(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -194,14 +255,29 @@ function RegisterPage() {
     try {
       setLoading(true);
       const order = await createOrderFn({
-        data: { token, itemType, itemSlug: item.slug },
+        data: {
+          token,
+          itemType,
+          itemSlug: item.slug,
+          couponCode: appliedPricing ? couponInput.trim() : undefined,
+        },
       });
+      if (order.paidViaFullCoupon) {
+        setDone(true);
+        return;
+      }
+      if (!order.razorpayOrderId) {
+        throw new Error("Could not start payment session.");
+      }
+      if (!razorpayKeyId) {
+        throw new Error("Checkout is not configured (missing Razorpay key).");
+      }
       const RazorpayCtor = (window as typeof window & { Razorpay?: new (options: Record<string, unknown>) => { open: () => void } }).Razorpay;
       if (!RazorpayCtor) {
         throw new Error("Razorpay SDK missing. Add checkout script.");
       }
       const instance = new RazorpayCtor({
-        key: "rzp_live_SmnIHTMb63Ulu7",
+        key: razorpayKeyId,
         amount: order.amount * 100,
         currency: "INR",
         name: "Cloud Vaathi",
@@ -240,9 +316,23 @@ function RegisterPage() {
     }
     try {
       setLoading(true);
-      await startRegistrationFn({
-        data: { token, itemType, itemSlug: item.slug },
+      const res = await startRegistrationFn({
+        data: {
+          token,
+          itemType,
+          itemSlug: item.slug,
+          couponCode: appliedPricing ? couponInput.trim() : undefined,
+        },
       });
+      if (res.alreadyEnrolled) {
+        setError("You are already enrolled.");
+        return;
+      }
+      if ("autoCompletedWithCoupon" in res && res.autoCompletedWithCoupon) {
+        if (user) saveRegisterFormDraft(user.id, item.slug, form);
+        setDone(true);
+        return;
+      }
       if (user) saveRegisterFormDraft(user.id, item.slug, form);
       setRegistered(true);
     } catch (err) {
@@ -369,29 +459,81 @@ function RegisterPage() {
                 />
               </div>
 
+              {!isFree ? (
+                <div className="rounded-lg border border-border/50 bg-surface/40 p-4 space-y-3">
+                  <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Coupon</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <input
+                      type="text"
+                      placeholder="Enter code"
+                      value={couponInput}
+                      disabled={loading || couponApplying}
+                      onChange={(e) => {
+                        setCouponInput(e.target.value);
+                        setCouponError("");
+                      }}
+                      className="flex-1 rounded-lg border border-border/60 bg-input/40 px-3 py-2 text-sm uppercase placeholder:normal-case"
+                    />
+                    <button
+                      type="button"
+                      disabled={loading || couponApplying}
+                      onClick={() => void applyCoupon()}
+                      className="inline-flex min-w-[5.5rem] items-center justify-center gap-2 rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 px-4 py-2 text-xs font-semibold text-neon-cyan hover:bg-neon-cyan/20 disabled:opacity-60"
+                    >
+                      {couponApplying ? <Spinner className="text-neon-cyan" /> : null}
+                      {couponApplying ? "Checking…" : "Apply"}
+                    </button>
+                    {appliedPricing ? (
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline"
+                        onClick={() => {
+                          setAppliedPricing(null);
+                          setCouponError("");
+                        }}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  {couponError ? <p className="text-[11px] text-destructive">{couponError}</p> : null}
+                  {appliedPricing ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Coupon applied — you pay <span className="font-semibold text-foreground">{formatINR(appliedPricing.finalAmount)}</span>{" "}
+                      (save {formatINR(appliedPricing.discountAmount)}).
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">Optional. Must match this {itemType}.</p>
+                  )}
+                </div>
+              ) : null}
+
               {isFree ? (
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01] disabled:opacity-70"
                 >
-                  {loading ? "Enrolling..." : "Complete free enrollment"}
+                  {loading ? <Spinner className="text-primary-foreground" /> : null}
+                  {loading ? "Enrolling…" : "Complete free enrollment"}
                 </button>
               ) : !registered ? (
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01] disabled:opacity-70"
                 >
-                  {loading ? "Registering..." : "Register seat"}
+                  {loading ? <Spinner className="text-primary-foreground" /> : null}
+                  {loading ? "Registering…" : "Register seat"}
                 </button>
               ) : (
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.01] disabled:opacity-70"
                 >
-                  <Lock className="h-4 w-4" /> {loading ? "Processing..." : `Pay ${formatINR(item?.price ?? 0)}`}
+                  {loading ? <Spinner className="text-primary-foreground" /> : <Lock className="h-4 w-4" />}
+                  {loading ? "Opening checkout…" : `Pay ${formatINR(effectivePrice)}`}
                 </button>
               )}
               {error ? <p className="text-center text-[11px] text-destructive">{error}</p> : null}
@@ -410,12 +552,15 @@ function RegisterPage() {
               </p>
             </div>
             <div className="mt-5 space-y-2 text-sm">
-              <Row label="Subtotal" value={formatINR(item?.price ?? 0)} />
+              <Row label="List price" value={formatINR(item?.price ?? 0)} />
+              {!isFree && appliedPricing && appliedPricing.discountAmount > 0 ? (
+                <Row label="Coupon" value={`−${formatINR(appliedPricing.discountAmount)}`} />
+              ) : null}
               <Row label="GST" value={isFree ? "—" : "incl."} />
             </div>
             <div className="mt-4 border-t border-border/60 pt-4 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total</span>
-              <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(item?.price ?? 0)}</span>
+              <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(isFree ? 0 : effectivePrice)}</span>
             </div>
           </aside>
         </div>

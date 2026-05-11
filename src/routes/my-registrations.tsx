@@ -4,6 +4,7 @@ import { Calendar, GraduationCap } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { myEnrollmentsFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
@@ -77,7 +78,11 @@ function MyRegistrationsPage() {
           </div>
         ) : null}
 
-        {status === "loading" ? <p className="mt-10 text-sm text-muted-foreground">Loading…</p> : null}
+        {status === "loading" ? (
+          <div className="mt-10">
+            <RoutePendingFallback compact />
+          </div>
+        ) : null}
 
         {error ? <p className="mt-10 text-sm text-destructive">{error}</p> : null}
 

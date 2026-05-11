@@ -3,6 +3,7 @@ import { Clock, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCoursesFn } from "@/lib/rpc";
 
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/courses")({
       { name: "description", content: "Browse upcoming live cohorts in cloud, DevOps and platform engineering." },
     ],
   }),
+  pendingComponent: RoutePendingFallback,
   component: CoursesPage,
 });
 

@@ -1,7 +1,8 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Calendar, Cloud, GraduationCap, LayoutDashboard, Users } from "lucide-react";
+import { createFileRoute, Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Calendar, Cloud, GraduationCap, LayoutDashboard, Ticket, Users } from "lucide-react";
 import { AuroraBg } from "@/components/aurora-bg";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { meFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
 
@@ -14,11 +15,13 @@ const adminNav = [
   { to: "/admin" as const, label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/admin/courses" as const, label: "Courses", icon: GraduationCap },
   { to: "/admin/events" as const, label: "Events", icon: Calendar },
+  { to: "/admin/coupons" as const, label: "Coupons", icon: Ticket },
   { to: "/admin/participants" as const, label: "Participants", icon: Users },
 ];
 
 function AdminLayout() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
+
   useEffect(() => {
     const token = getSessionToken();
     if (!token) {
@@ -31,7 +34,15 @@ function AdminLayout() {
   }, []);
 
   if (allowed === null) {
-    return <div className="p-10 text-center">Loading admin...</div>;
+    return (
+      <div className="relative min-h-screen">
+        <AuroraBg />
+        <div className="flex min-h-screen flex-col items-center justify-center px-4">
+          <RoutePendingFallback />
+          <p className="mt-2 text-xs text-muted-foreground">Checking administrator session…</p>
+        </div>
+      </div>
+    );
   }
   if (!allowed) {
     const token = getSessionToken();
@@ -123,11 +134,58 @@ function AdminLayout() {
               </Link>
             ))}
           </div>
-          <div className="p-6 md:p-10">
-            <Outlet />
-          </div>
+          <AdminAuthedOutlet />
         </main>
       </div>
+    </div>
+  );
+}
+
+/** Outlet + loading overlay; mounts only when admin session is valid. */
+function AdminAuthedOutlet() {
+  const router = useRouter();
+  const [sectionPulse, setSectionPulse] = useState(false);
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    const unsub = router.subscribe("onResolved", (evt) => {
+      if (!evt.pathChanged) return;
+      if (!evt.toLocation.pathname.startsWith("/admin")) return;
+      window.clearTimeout(pulseTimer.current);
+      setSectionPulse(true);
+      pulseTimer.current = window.setTimeout(() => {
+        setSectionPulse(false);
+        pulseTimer.current = undefined;
+      }, 400);
+    });
+    return () => {
+      unsub();
+      window.clearTimeout(pulseTimer.current);
+    };
+  }, [router]);
+
+  const loaderPending = useRouterState({
+    select: (s) =>
+      s.location.pathname.startsWith("/admin") &&
+      s.matches.some((m) => m.routeId !== "__root__" && m.status === "pending"),
+  });
+
+  const showOverlay = sectionPulse || loaderPending;
+
+  return (
+    <div className="relative min-h-[50vh] p-6 md:p-10">
+      {showOverlay ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex justify-center bg-background/35 pt-10 backdrop-blur-[1px] transition-opacity duration-200"
+          aria-busy
+        >
+          <div className="flex h-10 items-center gap-2 rounded-full border border-border/70 bg-surface/95 px-4 py-2 text-xs font-medium text-muted-foreground shadow-lg">
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-neon-cyan/25 border-t-neon-cyan" />
+            Loading section…
+          </div>
+        </div>
+      ) : null}
+      <Outlet />
     </div>
   );
 }

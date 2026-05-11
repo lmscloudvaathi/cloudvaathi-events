@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ensureDatabaseReady } from "./migrate";
 import { listCourses, listEvents, getCourseBySlug } from "./catalog";
-import { signUpSchema, verifyOtpSchema, loginSchema, createOrderSchema, confirmPaymentSchema } from "./validation";
+import {
+  signUpSchema,
+  verifyOtpSchema,
+  loginSchema,
+  createOrderSchema,
+  confirmPaymentSchema,
+} from "./validation";
 import { createUser, decodeSessionToken, issueSessionToken, loginUser } from "./auth";
 import { consumeOtp, generateOtp } from "./otp";
 import { sendOtpEmail } from "./mailer";
@@ -80,7 +86,14 @@ export const createOrderFn = createServerFn({ method: "POST" })
     await ensureDatabaseReady();
     const user = decodeSessionToken(data.token);
     if (!user) throw new Error("Unauthorized");
-    return createOrder({ userId: user.id, itemType: data.itemType, itemSlug: data.itemSlug });
+    return createOrder({
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      itemType: data.itemType,
+      itemSlug: data.itemSlug,
+      couponCode: data.couponCode,
+    });
   });
 
 export const confirmPaymentFn = createServerFn({ method: "POST" })

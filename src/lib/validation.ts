@@ -21,6 +21,14 @@ export const createOrderSchema = z.object({
   token: z.string().min(1),
   itemType: z.enum(["course", "event"]),
   itemSlug: z.string().min(1),
+  couponCode: z.string().max(64).optional(),
+});
+
+export const validateCouponSchema = z.object({
+  token: z.string().min(1),
+  itemType: z.enum(["course", "event"]),
+  itemSlug: z.string().min(1),
+  couponCode: z.string().min(1).max(64),
 });
 
 export const confirmPaymentSchema = z.object({

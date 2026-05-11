@@ -13,6 +13,10 @@ export const getRouter = () => {
     defaultStaleTime: 60_000,
     // Avoid treating preloaded route data as instantly stale (reduces loader churn / flicker on navigation).
     defaultPreloadStaleTime: 30_000,
+    /** Brief delay before showing `pendingComponent` — reduces flash on fast loaders. */
+    defaultPendingMs: 50,
+    /** Minimum time pending UI stays visible — feels deliberate, not glitchy. */
+    defaultPendingMinMs: 180,
   });
 
   return router;

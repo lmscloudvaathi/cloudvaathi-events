@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
+import { Spinner } from "@/components/spinner";
 import { safeRedirectPath } from "@/lib/auth-redirect";
 import { loginFn } from "@/lib/rpc";
 import { setSessionToken } from "@/lib/session-client";
@@ -59,8 +60,9 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.02]"
+              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-3 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-[1.02] disabled:opacity-70"
             >
+              {loading ? <Spinner className="text-primary-foreground" /> : null}
               Sign in <ArrowRight className="h-4 w-4" />
             </button>
           </form>

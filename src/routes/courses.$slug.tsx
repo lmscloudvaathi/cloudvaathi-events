@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
 import { CourseEnrollmentCta } from "@/components/course-enrollment-cta";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCourseFn } from "@/lib/rpc";
 
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/courses/$slug")({
         ]
       : [],
   }),
+  pendingComponent: () => <RoutePendingFallback compact />,
   component: CourseDetail,
   notFoundComponent: () => (
     <div className="flex min-h-screen items-center justify-center">

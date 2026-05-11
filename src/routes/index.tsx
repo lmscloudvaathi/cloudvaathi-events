@@ -3,6 +3,7 @@ import { ArrowRight, Calendar, Cpu, GraduationCap, LayoutList, Rocket, Sparkles,
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCoursesFn, getEventsFn } from "@/lib/rpc";
 import { useSessionUser } from "@/hooks/use-session-user";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Live cloud, DevOps & AI infra cohorts." },
     ],
   }),
+  pendingComponent: RoutePendingFallback,
   component: HomePage,
 });
 

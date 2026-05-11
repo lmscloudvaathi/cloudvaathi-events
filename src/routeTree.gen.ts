@@ -24,6 +24,7 @@ import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
 import { Route as AdminParticipantsRouteImport } from './routes/admin.participants'
 import { Route as AdminEventsRouteImport } from './routes/admin.events'
 import { Route as AdminCoursesRouteImport } from './routes/admin.courses'
+import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminEventsSlugRouteImport } from './routes/admin.events.$slug'
 import { Route as AdminCoursesSlugRouteImport } from './routes/admin.courses.$slug'
 
@@ -102,6 +103,11 @@ const AdminCoursesRoute = AdminCoursesRouteImport.update({
   path: '/courses',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCouponsRoute = AdminCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEventsSlugRoute = AdminEventsSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
   '/admin/participants': typeof AdminParticipantsRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
     | '/admin/participants'
@@ -348,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCoursesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/coupons': {
+      id: '/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/events/$slug': {
       id: '/admin/events/$slug'
       path: '/$slug'
@@ -390,6 +409,7 @@ const AdminEventsRouteWithChildren = AdminEventsRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCoursesRoute: typeof AdminCoursesRouteWithChildren
   AdminEventsRoute: typeof AdminEventsRouteWithChildren
   AdminParticipantsRoute: typeof AdminParticipantsRoute
@@ -397,6 +417,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCouponsRoute: AdminCouponsRoute,
   AdminCoursesRoute: AdminCoursesRouteWithChildren,
   AdminEventsRoute: AdminEventsRouteWithChildren,
   AdminParticipantsRoute: AdminParticipantsRoute,

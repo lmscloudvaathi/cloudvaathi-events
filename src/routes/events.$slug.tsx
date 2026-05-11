@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
 import { EventEnrollmentCta } from "@/components/event-enrollment-cta";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getEventFn } from "@/lib/rpc";
 
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/events/$slug")({
         ]
       : [],
   }),
+  pendingComponent: () => <RoutePendingFallback compact />,
   component: EventDetail,
 });
 

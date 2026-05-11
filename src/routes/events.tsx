@@ -3,6 +3,7 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
+import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getEventsFn } from "@/lib/rpc";
 
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/events")({
       { name: "description", content: "Workshops, hackathons, summits and meetups for the cloud community." },
     ],
   }),
+  pendingComponent: RoutePendingFallback,
   component: EventsPage,
 });
 
