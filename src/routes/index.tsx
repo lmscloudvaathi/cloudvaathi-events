@@ -3,6 +3,7 @@ import { ArrowRight, Calendar, Cpu, GraduationCap, LayoutList, Rocket, Sparkles,
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
+import { TestimonialsCarousel } from "@/components/testimonials-carousel";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCoursesFn, getEventsFn } from "@/lib/rpc";
@@ -186,6 +187,8 @@ function HomePage() {
           </div>
         </div>
       </section>
+
+      <TestimonialsCarousel />
 
       {/* CTA */}
       <section className="px-4 sm:px-6 py-20">
