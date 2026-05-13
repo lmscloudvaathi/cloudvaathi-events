@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE } from "../signup-constants";
 import { dbQuery } from "./db";
 import { getEnv } from "./env";
 
@@ -22,6 +23,12 @@ type DbUser = {
   email_verified: number;
 };
 
+function isDuplicateKeyError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: string; errno?: number };
+  return e.code === "ER_DUP_ENTRY" || e.errno === 1062;
+}
+
 export async function createUser(input: {
   name: string;
   email: string;
@@ -29,11 +36,18 @@ export async function createUser(input: {
   password: string;
 }) {
   const hash = await bcrypt.hash(input.password, 12);
-  await dbQuery(
-    `INSERT INTO users (name, email, phone, password_hash, role, email_verified)
-     VALUES (?, ?, ?, ?, 'user', 0)`,
-    [input.name, input.email.toLowerCase(), input.phone ?? null, hash],
-  );
+  try {
+    await dbQuery(
+      `INSERT INTO users (name, email, phone, password_hash, role, email_verified)
+       VALUES (?, ?, ?, ?, 'user', 0)`,
+      [input.name, input.email.toLowerCase(), input.phone ?? null, hash],
+    );
+  } catch (err) {
+    if (isDuplicateKeyError(err)) {
+      throw new Error(SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE);
+    }
+    throw err;
+  }
 }
 
 export async function verifyUserOtp(email: string) {

@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Lock, Mail, Phone, User } from "lucide-react";
+import { ArrowRight, Inbox, Lock, Mail, Phone, User } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
 import { Spinner } from "@/components/spinner";
 import { safeRedirectPath } from "@/lib/auth-redirect";
+import { isSignupDuplicateEmailError, SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE } from "@/lib/signup-constants";
 import { resendOtpFn, signupFn, verifyOtpFn } from "@/lib/rpc";
 
 export const Route = createFileRoute("/signup")({
@@ -22,6 +23,8 @@ function SignupPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendNotice, setResendNotice] = useState("");
   const [error, setError] = useState("");
   const set = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
 
@@ -40,6 +43,7 @@ function SignupPage() {
             onSubmit={async (e) => {
               e.preventDefault();
               setError("");
+              setResendNotice("");
               setLoading(true);
               try {
                 if (step === "signup") {
@@ -51,7 +55,12 @@ function SignupPage() {
                   navigate({ to: "/login", search: next ? { redirect: next } : {} });
                 }
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Request failed");
+                const msg = err instanceof Error ? err.message : "Request failed";
+                if (isSignupDuplicateEmailError(msg)) {
+                  setError(SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE);
+                } else {
+                  setError(msg);
+                }
               } finally {
                 setLoading(false);
               }
@@ -66,6 +75,22 @@ function SignupPage() {
               </>
             ) : (
               <>
+                <div className="flex gap-3 rounded-xl border border-neon-cyan/25 bg-neon-cyan/5 px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
+                  <Inbox className="mt-0.5 h-5 w-5 shrink-0 text-neon-cyan" aria-hidden />
+                  <div>
+                    <p className="font-medium text-foreground">Verification email sent</p>
+                    <p className="mt-1.5">
+                      We’ve sent a one-time code to{" "}
+                      <span className="break-all font-mono text-foreground/90">{form.email}</span>. It may take a minute
+                      to arrive. If you don’t see it, check your <span className="text-foreground/90">spam or junk</span>{" "}
+                      folder, or the <span className="text-foreground/90">Promotions</span> tab if you use Gmail.
+                    </p>
+                    <p className="mt-2 text-xs">
+                      Still nothing after a few minutes? Use <span className="font-medium text-foreground">Resend OTP</span>{" "}
+                      below, and confirm the address is correct.
+                    </p>
+                  </div>
+                </div>
                 <Field
                   icon={Mail}
                   label="Enter OTP from email"
@@ -74,18 +99,51 @@ function SignupPage() {
                   onChange={setOtp}
                   placeholder="6-digit OTP"
                 />
-                <button
-                  type="button"
-                  className="text-xs text-primary hover:underline"
-                  onClick={async () => {
-                    await resendOtpFn({ data: { email: form.email } });
-                  }}
-                >
-                  Resend OTP
-                </button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    disabled={resendLoading}
+                    className="text-left text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    onClick={async () => {
+                      setError("");
+                      setResendNotice("");
+                      setResendLoading(true);
+                      try {
+                        await resendOtpFn({ data: { email: form.email } });
+                        setResendNotice(
+                          "A new code has been sent. Please check your inbox and spam or promotions folders again.",
+                        );
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : "Could not resend code");
+                      } finally {
+                        setResendLoading(false);
+                      }
+                    }}
+                  >
+                    {resendLoading ? "Sending…" : "Resend OTP"}
+                  </button>
+                  {resendNotice ? <p className="text-xs text-muted-foreground sm:max-w-[14rem] sm:text-right">{resendNotice}</p> : null}
+                </div>
               </>
             )}
-            {error ? <p className="text-xs text-destructive">{error}</p> : null}
+            {error && isSignupDuplicateEmailError(error) ? (
+              <div
+                className="rounded-xl border border-border/80 bg-secondary/30 px-4 py-3.5 text-sm leading-relaxed text-muted-foreground"
+                role="alert"
+              >
+                <p className="text-foreground/95">{SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE}</p>
+                <p className="mt-3">
+                  <Link
+                    to="/login"
+                    search={redirect ? { redirect } : {}}
+                    className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                  >
+                    Go to sign in <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </p>
+              </div>
+            ) : null}
+            {error && !isSignupDuplicateEmailError(error) ? <p className="text-xs text-destructive">{error}</p> : null}
 
             <button
               type="submit"
