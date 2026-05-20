@@ -1,0 +1,16 @@
+{
+  "name": "Cloud Vaathi",
+  "short_name": "Cloud Vaathi",
+  "description": "Learn – Certify – Transform. Live cloud cohorts, events, and certification prep.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/CloudVaathiLogo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

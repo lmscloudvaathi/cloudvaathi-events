@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { formatDateForInput } from "@/lib/format-date-input";
 import { adminCourseBySlugFn, adminUpdateCourseFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
 
@@ -43,7 +44,7 @@ function AdminCourseEditor() {
           description: c.description,
           level: c.level,
           duration: c.duration,
-          startDate: c.startDate,
+          startDate: formatDateForInput(c.startDate),
           price: c.price,
           seats: c.seats,
           instructor: c.instructor,

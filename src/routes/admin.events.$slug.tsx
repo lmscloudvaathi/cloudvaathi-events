@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { formatDateForInput } from "@/lib/format-date-input";
 import { adminEventBySlugFn, adminUpdateEventFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
 
@@ -36,7 +37,7 @@ function AdminEventEditor() {
           slug: e.slug,
           title: e.title,
           type: e.type,
-          date: e.date,
+          date: formatDateForInput(e.date),
           time: e.time,
           venue: e.venue,
           price: e.price,

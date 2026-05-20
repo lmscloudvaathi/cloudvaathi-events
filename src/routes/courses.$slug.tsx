@@ -7,6 +7,7 @@ import { CourseEnrollmentCta } from "@/components/course-enrollment-cta";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCourseFn } from "@/lib/rpc";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 function formatDate(value: string) {
   if (!value) return "TBD";
@@ -22,14 +23,19 @@ export const Route = createFileRoute("/courses/$slug")({
     if (!course) throw notFound();
     return { course };
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.course.title} — Cloud Vaathi` },
-          { name: "description", content: loaderData.course.tagline },
-        ]
-      : [],
-  }),
+  head: ({ loaderData, match, params }) => {
+    if (!loaderData) return { meta: [] };
+    const siteMode = match.context.siteMode ?? "events";
+    const siteBaseUrl = siteBaseUrlForMode(siteMode);
+    return {
+      meta: buildSocialMeta({
+        siteBaseUrl,
+        title: `${loaderData.course.title} — Cloud Vaathi`,
+        description: loaderData.course.tagline,
+        path: `/courses/${params.slug}`,
+      }),
+    };
+  },
   pendingComponent: () => <RoutePendingFallback compact />,
   component: CourseDetail,
   notFoundComponent: () => (

@@ -1,3 +1,4 @@
+import { formatDateForInput } from "@/lib/format-date-input";
 import { dbQuery } from "./db";
 
 function parseDbStringArray(value: unknown): string[] {
@@ -174,7 +175,7 @@ export async function adminGetCourseBySlug(slug: string) {
     description: c.description,
     level: c.level,
     duration: c.duration,
-    startDate: c.start_date,
+    startDate: formatDateForInput(c.start_date),
     price: c.price,
     seats: c.seats,
     instructor: c.instructor,
@@ -275,7 +276,7 @@ export async function adminGetEventBySlug(slug: string) {
     slug: e.slug,
     title: e.title,
     type: e.type,
-    date: e.event_date,
+    date: formatDateForInput(e.event_date),
     time: e.event_time,
     venue: e.venue,
     price: e.price,

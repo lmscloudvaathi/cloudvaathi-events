@@ -3,6 +3,7 @@ import { EventsCatalog } from "@/components/events-catalog";
 import { MarketingHome } from "@/components/marketing-home";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 import { getCoursesFn, getEventsFn } from "@/lib/rpc";
 
 export const Route = createFileRoute("/")({
@@ -14,15 +15,28 @@ export const Route = createFileRoute("/")({
     const [courses, events] = await Promise.all([getCoursesFn(), getEventsFn()]);
     return { siteMode, courses, events };
   },
-  head: () => ({
-    meta: [
-      { title: "Cloud Vaathi — Learn, Certify, Transform" },
-      {
-        name: "description",
-        content: "Cloud Vaathi — live cloud cohorts, certification prep, tech events, and LMS.",
-      },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const siteMode = loaderData?.siteMode ?? "events";
+    const siteBaseUrl = siteBaseUrlForMode(siteMode);
+    if (siteMode === "marketing") {
+      return {
+        meta: buildSocialMeta({
+          siteBaseUrl,
+          title: "Cloud Vaathi — Learn, Certify, Transform",
+          description:
+            "Engineer the cloud generation. Live cohorts, certification prep, tech events, and a full LMS for structured learning.",
+        }),
+      };
+    }
+    return {
+      meta: buildSocialMeta({
+        siteBaseUrl,
+        title: "Courses & Events — Cloud Vaathi",
+        description:
+          "Browse live cloud cohorts and upcoming workshops. Register for courses and tech events with Cloud Vaathi.",
+      }),
+    };
+  },
   pendingComponent: RoutePendingFallback,
   component: IndexPage,
 });

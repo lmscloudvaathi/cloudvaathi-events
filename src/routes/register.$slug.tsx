@@ -11,6 +11,7 @@ import { confirmPaymentFn, completeFreeEnrollmentFn, createOrderFn, getCheckoutC
 import { getSessionToken } from "@/lib/session-client";
 import { enrollmentItemTypeMatches, enrollmentSlugMatches, normalizeEnrollmentPaymentStatus } from "@/lib/enrollment-utils";
 import { useSessionUser } from "@/hooks/use-session-user";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 function formatDate(value: string) {
   if (!value) return "TBD";
@@ -27,7 +28,19 @@ export const Route = createFileRoute("/register/$slug")({
     if (!course && !event) throw notFound();
     return { course, event };
   },
-  head: () => ({ meta: [{ title: "Register — Cloud Vaathi" }] }),
+  head: ({ loaderData, match, params }) => {
+    const item = loaderData?.course ?? loaderData?.event;
+    const title = item ? `Register for ${item.title} — Cloud Vaathi` : "Register — Cloud Vaathi";
+    const description = loaderData?.course?.tagline ?? loaderData?.event?.description?.slice(0, 200);
+    return {
+      meta: buildSocialMeta({
+        siteBaseUrl: siteBaseUrlForMode(match.context.siteMode ?? "events"),
+        title,
+        description: description ?? "Register for Cloud Vaathi courses and events.",
+        path: `/register/${params.slug}`,
+      }),
+    };
+  },
   pendingComponent: RoutePendingFallback,
   component: RegisterPage,
   notFoundComponent: () => <div className="p-10 text-center">Item not found</div>,

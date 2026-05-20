@@ -8,6 +8,7 @@ import { AuroraBg } from "@/components/aurora-bg";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getEventsFn } from "@/lib/rpc";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/events")({
   beforeLoad: async ({ location }) => {
@@ -17,11 +18,13 @@ export const Route = createFileRoute("/events")({
     }
   },
   loader: async () => ({ events: await getEventsFn() }),
-  head: () => ({
-    meta: [
-      { title: "Events — Cloud Vaathi" },
-      { name: "description", content: "Workshops, hackathons, summits and meetups for the cloud community." },
-    ],
+  head: ({ match }) => ({
+    meta: buildSocialMeta({
+      siteBaseUrl: siteBaseUrlForMode(match.context.siteMode ?? "events"),
+      title: "Events — Cloud Vaathi",
+      description: "Workshops, hackathons, summits and meetups for the cloud community.",
+      path: "/events",
+    }),
   }),
   pendingComponent: RoutePendingFallback,
   component: EventsPage,

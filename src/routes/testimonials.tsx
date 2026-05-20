@@ -3,16 +3,17 @@ import { AuroraBg } from "@/components/aurora-bg";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TestimonialsCarousel } from "@/components/testimonials-carousel";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/testimonials")({
-  head: () => ({
-    meta: [
-      { title: "Testimonials & achievements — Cloud Vaathi" },
-      {
-        name: "description",
-        content: "Stories from engineers and professionals who trained with Cloud Vaathi across certifications and cohorts.",
-      },
-    ],
+  head: ({ match }) => ({
+    meta: buildSocialMeta({
+      siteBaseUrl: siteBaseUrlForMode(match.context.siteMode ?? "marketing"),
+      title: "Testimonials & achievements — Cloud Vaathi",
+      description:
+        "Stories from engineers and professionals who trained with Cloud Vaathi across certifications and cohorts.",
+      path: "/testimonials",
+    }),
   }),
   component: TestimonialsPage,
 });

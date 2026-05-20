@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { FAVICON_PATH } from "@/lib/site-config";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { enforceSiteAccess } from "@/lib/site-guards";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
@@ -87,33 +88,36 @@ export const Route = createRootRouteWithContext<{
     enforceSiteAccess(location.pathname, siteMode);
     return { siteMode };
   },
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Cloud Vaathi" },
-      { name: "description", content: "Learn – Certify – Transform. Live cloud cohorts, events, and certification prep." },
-      { property: "og:title", content: "Cloud Vaathi" },
-      { property: "og:description", content: "Learn – Certify – Transform" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [
-      {
-        rel: "icon",
-        href: FAVICON_PATH,
-        type: "image/png",
-      },
-      {
-        rel: "apple-touch-icon",
-        href: FAVICON_PATH,
-      },
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
+  head: ({ match }) => {
+    const siteMode = match.context.siteMode ?? "events";
+    const siteBaseUrl = siteBaseUrlForMode(siteMode);
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        ...buildSocialMeta({ siteBaseUrl }),
+      ],
+      links: [
+        {
+          rel: "icon",
+          href: FAVICON_PATH,
+          type: "image/png",
+        },
+        {
+          rel: "apple-touch-icon",
+          href: FAVICON_PATH,
+        },
+        {
+          rel: "manifest",
+          href: "/site.webmanifest",
+        },
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

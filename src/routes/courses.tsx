@@ -8,6 +8,7 @@ import { AuroraBg } from "@/components/aurora-bg";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getCoursesFn } from "@/lib/rpc";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 function formatStartDate(value: string) {
   if (!value) return "TBD";
@@ -25,11 +26,13 @@ export const Route = createFileRoute("/courses")({
     }
   },
   loader: async () => ({ courses: await getCoursesFn() }),
-  head: () => ({
-    meta: [
-      { title: "Courses — Cloud Vaathi" },
-      { name: "description", content: "Browse upcoming live cohorts in cloud, DevOps and platform engineering." },
-    ],
+  head: ({ match }) => ({
+    meta: buildSocialMeta({
+      siteBaseUrl: siteBaseUrlForMode(match.context.siteMode ?? "events"),
+      title: "Courses — Cloud Vaathi",
+      description: "Browse upcoming live cohorts in cloud, DevOps and platform engineering.",
+      path: "/courses",
+    }),
   }),
   pendingComponent: RoutePendingFallback,
   component: CoursesPage,

@@ -7,6 +7,7 @@ import { EventEnrollmentCta } from "@/components/event-enrollment-cta";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { formatINR } from "@/lib/mock-data";
 import { getEventFn } from "@/lib/rpc";
+import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/events/$slug")({
   loader: async ({ params }) => {
@@ -14,14 +15,23 @@ export const Route = createFileRoute("/events/$slug")({
     if (!event) throw notFound();
     return { event };
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.event.title} — Cloud Vaathi` },
-          { name: "description", content: loaderData.event.description },
-        ]
-      : [],
-  }),
+  head: ({ loaderData, match, params }) => {
+    if (!loaderData) return { meta: [] };
+    const siteMode = match.context.siteMode ?? "events";
+    const siteBaseUrl = siteBaseUrlForMode(siteMode);
+    const description =
+      loaderData.event.description.length > 200
+        ? `${loaderData.event.description.slice(0, 197)}…`
+        : loaderData.event.description;
+    return {
+      meta: buildSocialMeta({
+        siteBaseUrl,
+        title: `${loaderData.event.title} — Cloud Vaathi`,
+        description,
+        path: `/events/${params.slug}`,
+      }),
+    };
+  },
   pendingComponent: () => <RoutePendingFallback compact />,
   component: EventDetail,
 });
