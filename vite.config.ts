@@ -18,7 +18,7 @@ export default defineConfig({
         const path = req.url?.split("?")[0];
         if (path === "/favicon.ico") {
           res.statusCode = 302;
-          res.setHeader("Location", "/favicon.svg");
+          res.setHeader("Location", "/CloudVaathiLogo.png");
           res.end();
           return;
         }

@@ -44,6 +44,8 @@ export type WorkerRequestStore = {
   env: EnvRecord;
   /** Parsed once per request — avoids repeated Zod work on hot paths. */
   parsedEnv?: ParsedEnv;
+  /** Hostname from the incoming Worker request (SSR site mode). */
+  requestHost?: string;
   mysqlConn: Connection | null;
   /** Single-flight while opening MySQL for this request */
   mysqlPending?: Promise<Connection>;
@@ -93,7 +95,7 @@ function mergeEnvSource(flat: Record<string, string>): EnvRecord {
  * Wrap the Worker fetch body so `getEnv()` sees this request's bindings only.
  * Must wrap before any await that yields (otherwise concurrent requests overwrite globals).
  */
-export function runWithCloudflareBindings<T>(env: unknown, fn: () => T): T {
+export function runWithCloudflareBindings<T>(env: unknown, fn: () => T, request?: Request): T {
   const flat = flattenWorkerBindings(env);
   if (
     Object.keys(flat).length === 0 &&
@@ -104,7 +106,8 @@ export function runWithCloudflareBindings<T>(env: unknown, fn: () => T): T {
     );
   }
   const merged = mergeEnvSource(flat);
-  const store: WorkerRequestStore = { env: merged, mysqlConn: null };
+  const requestHost = request ? new URL(request.url).hostname : undefined;
+  const store: WorkerRequestStore = { env: merged, mysqlConn: null, requestHost };
   return workerRequestAls.run(store, fn);
 }
 

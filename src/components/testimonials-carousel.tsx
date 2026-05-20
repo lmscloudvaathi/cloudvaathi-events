@@ -68,7 +68,7 @@ export function TestimonialsCarousel() {
         <div className="mb-12 text-center">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-neon-cyan">// voices from the community</p>
           <h2 id="testimonials-heading" className="mt-3 font-display text-4xl font-bold sm:text-5xl">
-            What learners say
+            Testimonials &amp; achievements
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
             Real feedback from engineers and professionals who prepared with Cloud Vaathi across certifications and cohorts.

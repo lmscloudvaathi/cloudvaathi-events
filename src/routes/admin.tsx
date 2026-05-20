@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Calendar, Cloud, GraduationCap, LayoutDashboard, Ticket, Users } from "lucide-react";
+import { Calendar, GraduationCap, LayoutDashboard, Ticket, Users } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { AuroraBg } from "@/components/aurora-bg";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { meFn } from "@/lib/rpc";
@@ -84,14 +85,9 @@ function AdminLayout() {
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className="hidden md:flex w-64 flex-col border-r border-border/50 glass">
-          <Link to="/" className="flex items-center gap-2 px-6 py-5 border-b border-border/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-neon glow-cyan">
-              <Cloud className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="font-display text-sm font-bold">Cloud Vaathi</span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-neon-cyan">admin console</span>
-            </div>
+          <Link to="/" className="block px-6 py-5 border-b border-border/50">
+            <BrandLogo size="sm" showTagline={false} />
+            <span className="mt-1 block font-mono text-[9px] uppercase tracking-[0.25em] text-neon-cyan">admin console</span>
           </Link>
 
           <nav className="flex-1 p-3 space-y-1">

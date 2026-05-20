@@ -1,23 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { Cloud, Github, Linkedin, Twitter } from "lucide-react";
+import { Github, Linkedin, Twitter } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { CONTACT_EMAIL } from "@/lib/site-config";
+import { eventsSiteUrl, lmsSiteUrl, marketingSiteUrl } from "@/lib/site-mode-shared";
+import { useIsMarketingSite } from "@/lib/site-mode";
 import { useSessionUser } from "@/hooks/use-session-user";
 
 export function SiteFooter() {
   const { user } = useSessionUser();
+  const marketing = useIsMarketingSite();
 
   return (
     <footer className="mt-32 border-t border-border/50 bg-surface/40">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-neon">
-              <Cloud className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <span className="font-display text-lg font-bold">Cloud Vaathi</span>
-          </div>
+          <BrandLogo size="sm" />
           <p className="mt-3 max-w-md text-sm text-muted-foreground">
-            A community-led academy for cloud, DevOps and platform engineers. Live cohorts, real projects and a network that ships.
+            A community-led academy for cloud, DevOps and platform engineers. Live cohorts, real projects and a network
+            that ships.
           </p>
           <div className="mt-5 flex gap-3">
             {[Twitter, Github, Linkedin].map((Icon, i) => (
@@ -35,11 +35,55 @@ export function SiteFooter() {
         <div>
           <h4 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">Explore</h4>
           <ul className="mt-4 space-y-2 text-sm">
-            <li><Link to="/courses" className="hover:text-primary">Courses</Link></li>
-            <li><Link to="/events" className="hover:text-primary">Events</Link></li>
-            {!user ? (
-              <li><Link to="/login" className="hover:text-primary">Sign in</Link></li>
-            ) : null}
+            {marketing ? (
+              <>
+                <li>
+                  <Link to="/" className="hover:text-primary">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <a href={eventsSiteUrl("/")} className="hover:text-primary">
+                    Courses &amp; events
+                  </a>
+                </li>
+                <li>
+                  <a href={lmsSiteUrl()} className="hover:text-primary">
+                    LMS
+                  </a>
+                </li>
+                <li>
+                  <Link to="/testimonials" className="hover:text-primary">
+                    Testimonials
+                  </Link>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link to="/" className="hover:text-primary">
+                    Courses &amp; events
+                  </Link>
+                </li>
+                <li>
+                  <a href={marketingSiteUrl("/")} className="hover:text-primary">
+                    Cloud Vaathi home
+                  </a>
+                </li>
+                <li>
+                  <a href={lmsSiteUrl()} className="hover:text-primary">
+                    LMS
+                  </a>
+                </li>
+                {!user ? (
+                  <li>
+                    <Link to="/login" className="hover:text-primary">
+                      Sign in
+                    </Link>
+                  </li>
+                ) : null}
+              </>
+            )}
           </ul>
         </div>
 

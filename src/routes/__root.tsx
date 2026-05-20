@@ -9,7 +9,11 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { FAVICON_PATH } from "@/lib/site-config";
 import { NavigationProgress } from "@/components/navigation-progress";
+import { enforceSiteAccess } from "@/lib/site-guards";
+import { resolveSiteMode } from "@/lib/resolve-site-mode";
+import type { SiteMode } from "@/lib/site-mode-shared";
 
 function NotFoundComponent() {
   return (
@@ -74,25 +78,35 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+  siteMode: SiteMode;
+}>()({
+  beforeLoad: async ({ location }) => {
+    const siteMode = await resolveSiteMode();
+    enforceSiteAccess(location.pathname, siteMode);
+    return { siteMode };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Cloud Vaathi" },
+      { name: "description", content: "Learn – Certify – Transform. Live cloud cohorts, events, and certification prep." },
+      { property: "og:title", content: "Cloud Vaathi" },
+      { property: "og:description", content: "Learn – Certify – Transform" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
         rel: "icon",
-        href: "/favicon.svg",
-        type: "image/svg+xml",
+        href: FAVICON_PATH,
+        type: "image/png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: FAVICON_PATH,
       },
       {
         rel: "stylesheet",

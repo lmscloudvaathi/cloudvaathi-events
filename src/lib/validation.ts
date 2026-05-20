@@ -1,10 +1,13 @@
 import { z } from "zod";
 
+export const SIGNUP_PASSWORD_MIN_MESSAGE =
+  "Your password must be at least 8 characters long. Please choose a stronger password to keep your account secure.";
+
 export const signUpSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(8).max(20),
-  password: z.string().min(8),
+  name: z.string().min(2, "Please enter your full name (at least 2 characters)."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().min(8, "Please enter a valid WhatsApp number (at least 8 digits).").max(20, "Phone number is too long."),
+  password: z.string().min(8, SIGNUP_PASSWORD_MIN_MESSAGE),
 });
 
 export const verifyOtpSchema = z.object({
@@ -13,8 +16,8 @@ export const verifyOtpSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email("Please enter a valid email address."),
+  password: z.string().min(8, SIGNUP_PASSWORD_MIN_MESSAGE),
 });
 
 export const createOrderSchema = z.object({
@@ -37,3 +40,8 @@ export const confirmPaymentSchema = z.object({
   razorpay_payment_id: z.string().min(1),
   razorpay_signature: z.string().min(1),
 });
+
+/** First user-facing message from a Zod validation failure. */
+export function firstZodIssueMessage(err: z.ZodError): string {
+  return err.issues[0]?.message ?? "Please check your details and try again.";
+}

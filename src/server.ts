@@ -77,25 +77,29 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 function faviconIcoRedirect(request: Request): Response | null {
   const url = new URL(request.url);
   if (url.pathname !== "/favicon.ico") return null;
-  return Response.redirect(new URL("/favicon.svg", url.origin).href, 302);
+  return Response.redirect(new URL("/CloudVaathiLogo.png", url.origin).href, 302);
 }
 
 export default {
   fetch(request: Request, env: unknown, ctx: unknown) {
-    return runWithCloudflareBindings(env ?? {}, async () => {
-      try {
-        const early = faviconIcoRedirect(request);
-        if (early) return early;
+    return runWithCloudflareBindings(
+      env ?? {},
+      async () => {
+        try {
+          const early = faviconIcoRedirect(request);
+          if (early) return early;
 
-        const handler = await getServerEntry();
-        const response = await handler.fetch(request, env, ctx);
-        return await normalizeCatastrophicSsrResponse(response);
-      } catch (error) {
-        console.error(error);
-        return brandedErrorResponse(formatErrorForDev(error));
-      } finally {
-        await closeWorkerMysql();
-      }
-    });
+          const handler = await getServerEntry();
+          const response = await handler.fetch(request, env, ctx);
+          return await normalizeCatastrophicSsrResponse(response);
+        } catch (error) {
+          console.error(error);
+          return brandedErrorResponse(formatErrorForDev(error));
+        } finally {
+          await closeWorkerMysql();
+        }
+      },
+      request,
+    );
   },
 };

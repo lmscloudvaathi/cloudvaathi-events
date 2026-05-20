@@ -1,4 +1,6 @@
-import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
+import { shouldRedirectCatalogListToHome } from "@/lib/site-guards";
+import { resolveSiteMode } from "@/lib/resolve-site-mode";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,6 +10,12 @@ import { formatINR } from "@/lib/mock-data";
 import { getEventsFn } from "@/lib/rpc";
 
 export const Route = createFileRoute("/events")({
+  beforeLoad: async ({ location }) => {
+    const siteMode = await resolveSiteMode();
+    if (shouldRedirectCatalogListToHome(location.pathname, siteMode)) {
+      throw redirect({ to: "/", hash: "events" });
+    }
+  },
   loader: async () => ({ events: await getEventsFn() }),
   head: () => ({
     meta: [

@@ -77,12 +77,6 @@ function LoginPage() {
               Create an account
             </Link>
           </p>
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            Administrator?{" "}
-            <Link to="/admin-login" className="font-semibold text-primary hover:underline">
-              Admin sign in
-            </Link>
-          </p>
         </div>
       </div>
     </div>

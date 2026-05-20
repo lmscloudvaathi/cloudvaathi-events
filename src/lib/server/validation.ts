@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const signUpSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(8).max(20),
-  password: z.string().min(8),
+  name: z.string().min(2, "Please enter your full name (at least 2 characters)."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().min(8, "Please enter a valid WhatsApp number (at least 8 digits).").max(20, "Phone number is too long."),
+  password: z.string().min(8, "Your password must be at least 8 characters long. Please choose a stronger password to keep your account secure."),
 });
 
 export const verifyOtpSchema = z.object({

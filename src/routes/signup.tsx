@@ -5,8 +5,10 @@ import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
 import { Spinner } from "@/components/spinner";
 import { safeRedirectPath } from "@/lib/auth-redirect";
+import { formatUserFacingError } from "@/lib/form-errors";
 import { isSignupDuplicateEmailError, SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE } from "@/lib/signup-constants";
 import { resendOtpFn, signupFn, verifyOtpFn } from "@/lib/rpc";
+import { firstZodIssueMessage, signUpSchema } from "@/lib/validation";
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -47,7 +49,12 @@ function SignupPage() {
               setLoading(true);
               try {
                 if (step === "signup") {
-                  await signupFn({ data: form });
+                  const parsed = signUpSchema.safeParse(form);
+                  if (!parsed.success) {
+                    setError(firstZodIssueMessage(parsed.error));
+                    return;
+                  }
+                  await signupFn({ data: parsed.data });
                   setStep("otp");
                 } else {
                   await verifyOtpFn({ data: { email: form.email, code: otp } });
@@ -55,7 +62,7 @@ function SignupPage() {
                   navigate({ to: "/login", search: next ? { redirect: next } : {} });
                 }
               } catch (err) {
-                const msg = err instanceof Error ? err.message : "Request failed";
+                const msg = formatUserFacingError(err);
                 if (isSignupDuplicateEmailError(msg)) {
                   setError(SIGNUP_EMAIL_ALREADY_EXISTS_MESSAGE);
                 } else {

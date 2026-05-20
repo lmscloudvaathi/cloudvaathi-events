@@ -1,13 +1,14 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import type { SiteMode } from "./lib/site-mode-shared";
 
 export const getRouter = () => {
   const queryClient = new QueryClient();
 
   const router = createRouter({
     routeTree,
-    context: { queryClient },
+    context: { queryClient, siteMode: "events" as SiteMode },
     scrollRestoration: true,
     // Keep route loader results warm briefly so moving between catalog pages does not constantly resuspend / refetch.
     defaultStaleTime: 60_000,

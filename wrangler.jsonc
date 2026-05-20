@@ -9,7 +9,7 @@
   // Replace placeholders with your real TiDB/Gmail/Razorpay *public* IDs (same ideas as .env.example).
   // Passwords & PEM must NEVER live here — use: npm run cf:push-secrets (reads local .env).
   "vars": {
-    "APP_BASE_URL": "https://cloudvaathi-events.lmscloudvaathi.workers.dev",
+    "APP_BASE_URL": "https://events.cloudvaathi.in",
     "TIDB_HOST": "gateway01.ap-southeast-1.prod.alicloud.tidbcloud.com",
     "TIDB_PORT": "4000",
     "TIDB_DATABASE": "cloud_vaathi",

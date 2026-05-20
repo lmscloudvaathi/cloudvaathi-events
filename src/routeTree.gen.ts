@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as MyRegistrationsRouteImport } from './routes/my-registrations'
 import { Route as LoginRouteImport } from './routes/login'
@@ -28,6 +29,11 @@ import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminEventsSlugRouteImport } from './routes/admin.events.$slug'
 import { Route as AdminCoursesSlugRouteImport } from './routes/admin.courses.$slug'
 
+const TestimonialsRoute = TestimonialsRouteImport.update({
+  id: '/testimonials',
+  path: '/testimonials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
   '/signup': typeof SignupRoute
+  '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
   '/admin/events': typeof AdminEventsRouteWithChildren
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-registrations'
     | '/signup'
+    | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
     | '/admin/events'
@@ -250,11 +262,19 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MyRegistrationsRoute: typeof MyRegistrationsRoute
   SignupRoute: typeof SignupRoute
+  TestimonialsRoute: typeof TestimonialsRoute
   RegisterSlugRoute: typeof RegisterSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/testimonials': {
+      id: '/testimonials'
+      path: '/testimonials'
+      fullPath: '/testimonials'
+      preLoaderRoute: typeof TestimonialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -457,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MyRegistrationsRoute: MyRegistrationsRoute,
   SignupRoute: SignupRoute,
+  TestimonialsRoute: TestimonialsRoute,
   RegisterSlugRoute: RegisterSlugRoute,
 }
 export const routeTree = rootRouteImport
