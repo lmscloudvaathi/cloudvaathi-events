@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { AuroraBg } from "@/components/aurora-bg";
+import { CardScroll, ChipScroll } from "@/components/h-scroll";
 import { ProgramCard } from "@/components/program-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { JumpLink } from "@/components/jump-link";
 import { CONTACT_EMAIL, FOUNDER_NAME } from "@/lib/site-config";
 import { lmsSiteUrl } from "@/lib/site-mode-shared";
 import {
@@ -79,9 +81,9 @@ export function EventsCatalog({ courses, events }: CatalogData) {
         </div>
       </section>
 
-      <section className="px-4 sm:px-6">
-        <div className="mx-auto max-w-7xl space-y-4">
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Program status">
+      <section className="sticky top-16 z-30 border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:px-6">
+        <div className="mx-auto max-w-7xl space-y-3">
+          <ChipScroll role="tablist" aria-label="Program status">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -89,7 +91,7 @@ export function EventsCatalog({ courses, events }: CatalogData) {
                 role="tab"
                 aria-selected={statusFilter === tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
                   statusFilter === tab.id
                     ? "bg-gradient-neon text-black"
                     : "border border-border/60 text-muted-foreground hover:text-foreground"
@@ -98,12 +100,12 @@ export function EventsCatalog({ courses, events }: CatalogData) {
                 {tab.label}
               </button>
             ))}
-          </div>
-          <div className="flex flex-wrap gap-2" aria-label="Category">
+          </ChipScroll>
+          <ChipScroll aria-label="Category">
             <button
               type="button"
               onClick={() => setCategoryFilter("all")}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-medium ${
                 categoryFilter === "all" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -114,14 +116,14 @@ export function EventsCatalog({ courses, events }: CatalogData) {
                 key={c}
                 type="button"
                 onClick={() => setCategoryFilter(c)}
-                className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-medium ${
                   categoryFilter === c ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {c}
               </button>
             ))}
-          </div>
+          </ChipScroll>
         </div>
       </section>
 
@@ -179,19 +181,20 @@ export function EventsCatalog({ courses, events }: CatalogData) {
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             Join the waitlist for the next intake or continue learning on the LMS.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <a
               href={waitlistMailto("Next Cloud Vaathi intake")}
-              className="inline-flex rounded-full bg-gradient-neon px-7 py-3 text-sm font-semibold text-black"
+              className="inline-flex items-center justify-center rounded-full bg-gradient-neon px-7 py-3 text-sm font-semibold text-black"
             >
               Join Waitlist
             </a>
-            <a
+            <JumpLink
               href={lmsSiteUrl()}
-              className="inline-flex rounded-full border border-border px-7 py-3 text-sm font-semibold"
+              newTab
+              className="inline-flex items-center justify-center rounded-full border border-border px-7 py-3 text-sm font-semibold"
             >
               Open the LMS
-            </a>
+            </JumpLink>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Waitlist requests go to <a className="underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. This
@@ -224,10 +227,12 @@ function UpcomingByCategory({ items }: { items: HubProgram[] }) {
             return (
               <div key={cat} className="mt-10">
                 <h3 className="font-display text-xl font-semibold text-neon-cyan">{cat}</h3>
-                <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {group.map((p) => (
-                    <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
-                  ))}
+                <div className="mt-6">
+                  <CardScroll>
+                    {group.map((p) => (
+                      <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
+                    ))}
+                  </CardScroll>
                 </div>
               </div>
             );
@@ -267,10 +272,12 @@ function ProgramSection({
         {items.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">{empty ?? "Nothing in this section right now."}</p>
         ) : (
-          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {items.map((p) => (
-              <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
-            ))}
+          <div className="mt-8">
+            <CardScroll>
+              {items.map((p) => (
+                <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
+              ))}
+            </CardScroll>
           </div>
         )}
       </div>

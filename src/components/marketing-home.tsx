@@ -3,6 +3,8 @@ import { ArrowRight, BookOpen, Compass, GraduationCap, Sparkles } from "lucide-r
 import { AuroraBg } from "@/components/aurora-bg";
 import { CohortAvailabilityLabel } from "@/components/cohort-availability-label";
 import { FounderPortrait } from "@/components/founder-portrait";
+import { CardScroll } from "@/components/h-scroll";
+import { JumpLink } from "@/components/jump-link";
 import { SampleSessionButton } from "@/components/sample-session";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -16,7 +18,8 @@ import {
   TRUST_STATS,
 } from "@/lib/site-config";
 import { courseLifecycle, eventLifecycle, formatProgramDate, isOpenForHomepage, programDateSortKey } from "@/lib/program-status";
-import { eventsSiteUrl, lmsSiteUrl } from "@/lib/site-mode-shared";
+import { eventsHref, eventsSiteUrl, useSiteMode } from "@/lib/site-mode";
+import { lmsSiteUrl } from "@/lib/site-mode-shared";
 import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import type { getCoursesFn, getEventsFn } from "@/lib/rpc";
 
@@ -98,23 +101,24 @@ function TrustStrip({ className }: { className?: string }) {
 }
 
 function HeroActions({ className }: { className?: string }) {
+  const siteMode = useSiteMode();
   return (
     <div className={className}>
-      <a
-        href={eventsSiteUrl("/#upcoming")}
-        className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-neon px-7 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
+      <JumpLink
+        href={eventsHref(siteMode, "/#upcoming")}
+        className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-neon px-7 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105 sm:w-auto"
       >
         Explore Upcoming Programs
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-      </a>
+      </JumpLink>
       <Link
         to="/about"
         hash="founder"
-        className="inline-flex items-center justify-center gap-2 rounded-full glass px-7 py-3.5 text-sm font-semibold text-foreground hover:border-primary"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full glass px-7 py-3.5 text-sm font-semibold text-foreground hover:border-primary sm:w-auto"
       >
         Meet Sivva
       </Link>
-      <SampleSessionButton />
+      <SampleSessionButton className="w-full sm:w-auto" />
     </div>
   );
 }
@@ -144,6 +148,7 @@ const WHY_CARDS = [
 
 export function MarketingHome({ courses, events }: CatalogLists) {
   const preview = upcomingPreview({ courses, events });
+  const siteMode = useSiteMode();
 
   return (
     <div className="relative min-h-screen">
@@ -173,7 +178,7 @@ export function MarketingHome({ courses, events }: CatalogLists) {
 
           <TrustStrip className="lg:col-start-1 lg:row-start-2" />
 
-          <HeroActions className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:col-start-1 lg:row-start-3 lg:justify-start" />
+          <HeroActions className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:col-start-1 lg:row-start-3 lg:justify-start" />
         </div>
       </section>
 
@@ -264,19 +269,19 @@ export function MarketingHome({ courses, events }: CatalogLists) {
         </div>
       </section>
 
-      <section className="px-4 sm:px-6 py-16">
+      <section id="upcoming" className="scroll-mt-24 px-4 sm:px-6 py-16">
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.3em] text-neon-cyan">// upcoming</p>
               <h2 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Upcoming programs</h2>
             </div>
-            <a
-              href={eventsSiteUrl("/#upcoming")}
+            <JumpLink
+              href={eventsHref(siteMode, "/#upcoming")}
               className="text-sm font-semibold text-neon-cyan underline-offset-4 hover:underline"
             >
               View all upcoming →
-            </a>
+            </JumpLink>
           </div>
           {preview.length === 0 ? (
             <p className="rounded-2xl glass px-6 py-10 text-sm text-muted-foreground">
@@ -284,11 +289,11 @@ export function MarketingHome({ courses, events }: CatalogLists) {
               when a cohort fills.
             </p>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <CardScroll className="xl:grid-cols-4">
               {preview.map((p) => {
                 const full = getCohortAvailability({ seats: p.seats, taken: p.taken, startDate: p.startDate }).kind === "full";
                 return (
-                  <article key={p.key} className="flex flex-col rounded-2xl glass p-6">
+                  <article key={p.key} className="flex h-full min-w-0 flex-col rounded-2xl glass p-6">
                     <p className="text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
                       {p.category} · {p.format}
                     </p>
@@ -298,49 +303,50 @@ export function MarketingHome({ courses, events }: CatalogLists) {
                       <CohortAvailabilityLabel seats={p.seats} taken={p.taken} startDate={p.startDate} />
                     </p>
                     <div className="mt-6 flex flex-col gap-2">
-                      <a
+                      <JumpLink
                         href={p.detailsHref}
                         className="inline-flex items-center justify-center rounded-md border border-border/60 px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary/60"
                       >
                         View details
-                      </a>
+                      </JumpLink>
                       {full ? (
-                        <a
+                        <JumpLink
                           href={p.registerHref}
                           className="inline-flex items-center justify-center rounded-md bg-gradient-neon px-3 py-2 text-xs font-semibold text-black"
                         >
                           Join waitlist
-                        </a>
+                        </JumpLink>
                       ) : null}
                     </div>
                   </article>
                 );
               })}
-            </div>
+            </CardScroll>
           )}
         </div>
       </section>
 
       <section className="px-4 sm:px-6 py-20">
-        <div className="mx-auto max-w-5xl rounded-3xl glass p-12 text-center glow-violet">
-          <h2 className="font-display text-4xl font-bold sm:text-5xl">Your next capability starts here.</h2>
+        <div className="mx-auto max-w-5xl rounded-3xl glass p-6 text-center glow-violet sm:p-12">
+          <h2 className="font-display text-3xl font-bold sm:text-5xl">Your next capability starts here.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
             Choose a learning path, join a live cohort, and build the confidence to take the next step in cloud,
             cybersecurity or AI.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={eventsSiteUrl("/#upcoming")}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-neon px-8 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <JumpLink
+              href={eventsHref(siteMode, "/#upcoming")}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-neon px-8 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
             >
               Explore Upcoming Programs <ArrowRight className="h-4 w-4" />
-            </a>
-            <a
+            </JumpLink>
+            <JumpLink
               href={lmsSiteUrl()}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-8 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/60"
+              newTab
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background/60 px-8 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/60"
             >
               Open the LMS
-            </a>
+            </JumpLink>
           </div>
         </div>
       </section>

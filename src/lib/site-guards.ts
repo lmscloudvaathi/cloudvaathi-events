@@ -21,13 +21,13 @@ function isEventsAppPath(pathname: string): boolean {
 export function enforceSiteAccess(pathname: string, siteMode: SiteMode): void {
   if (siteMode === "marketing") {
     if (isEventsAppPath(pathname)) {
-      throw redirect({ href: eventsSiteUrl(pathname) });
+      throw redirect({ href: eventsSiteUrl(pathname), reloadDocument: true });
     }
     return;
   }
 
   if (MARKETING_ONLY.has(pathname) && pathname !== "/") {
-    throw redirect({ href: marketingSiteUrl(pathname) });
+    throw redirect({ href: marketingSiteUrl(pathname), reloadDocument: true });
   }
 }
 

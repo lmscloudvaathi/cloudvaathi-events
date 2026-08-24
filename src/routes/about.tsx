@@ -5,7 +5,8 @@ import { FounderPortrait } from "@/components/founder-portrait";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { FOUNDER_INTRO, FOUNDER_NAME, FOUNDER_ROLE, CREDENTIAL_SNAPSHOT, TRUST_STATS } from "@/lib/site-config";
-import { eventsSiteUrl } from "@/lib/site-mode-shared";
+import { JumpLink } from "@/components/jump-link";
+import { eventsHref, useSiteMode } from "@/lib/site-mode";
 import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
 export const Route = createFileRoute("/about")({
@@ -36,6 +37,7 @@ const PROFILE_POINTS = [
 ] as const;
 
 function AboutPage() {
+  const siteMode = useSiteMode();
   return (
     <div className="relative min-h-screen">
       <AuroraBg />
@@ -91,13 +93,13 @@ function AboutPage() {
             </section>
 
             <div className="mt-12 flex flex-col gap-3 sm:flex-row">
-              <a
-                href={eventsSiteUrl("/#upcoming")}
+              <JumpLink
+                href={eventsHref(siteMode, "/#upcoming")}
                 className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-neon px-7 py-3.5 text-sm font-semibold text-primary-foreground glow-cyan transition-transform hover:scale-105"
               >
                 Explore Upcoming Programs
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
+              </JumpLink>
               <Link
                 to="/testimonials"
                 className="inline-flex items-center justify-center gap-2 rounded-full glass px-7 py-3.5 text-sm font-semibold text-foreground hover:border-primary"

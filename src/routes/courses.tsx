@@ -69,12 +69,12 @@ function CoursesPage() {
             >
               <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-neon opacity-10 blur-2xl transition-opacity group-hover:opacity-30" />
 
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
+              <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <span className="shrink-0 rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
                   {categoryFromProgramName(c.title, c.slug)}
                 </span>
                 {c.tags.map((t) => (
-                  <span key={t} className="rounded-full border border-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{t}</span>
+                  <span key={t} className="shrink-0 rounded-full border border-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{t}</span>
                 ))}
               </div>
 

@@ -1,5 +1,6 @@
 import { CourseEnrollmentCta } from "@/components/course-enrollment-cta";
 import { EventEnrollmentCta } from "@/components/event-enrollment-cta";
+import { JumpLink } from "@/components/jump-link";
 import {
   notifyReturnMailto,
   programSeatMessage,
@@ -51,9 +52,9 @@ export function ProgramDetailCta({ program }: { program: HubProgram }) {
     return (
       <p className="mt-6 text-sm text-muted-foreground">
         {programSeatMessage(program)}. Registration for this intake is not open.{" "}
-        <a href="/#upcoming" className="font-semibold text-neon-cyan hover:underline">
+        <JumpLink href="/#upcoming" className="font-semibold text-neon-cyan hover:underline">
           See upcoming programs
-        </a>
+        </JumpLink>
         .
       </p>
     );

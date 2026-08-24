@@ -93,13 +93,22 @@
 @layer base {
   * { border-color: var(--color-border); }
 
+  html {
+    overflow-x: clip;
+  }
   html, body { background-color: var(--color-background); color: var(--color-foreground); }
   body {
     font-family: var(--font-display);
     background-image: var(--gradient-aurora);
     background-attachment: fixed;
     min-height: 100vh;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
+  }
+  @media (max-width: 767px) {
+    body {
+      background-attachment: scroll;
+    }
   }
 
   ::selection { background: oklch(0.65 0.25 295 / 0.4); color: var(--foreground); }

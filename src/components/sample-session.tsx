@@ -8,8 +8,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { SAMPLE_SESSION } from "@/lib/site-config";
-import { eventsSiteUrl } from "@/lib/site-mode-shared";
+import { eventsHref, useSiteMode } from "@/lib/site-mode";
 import { cn } from "@/lib/utils";
+import { JumpLink } from "@/components/jump-link";
 
 const EMBED_SRC = `https://www.youtube-nocookie.com/embed/${SAMPLE_SESSION.youtubeId}?rel=0&modestbranding=1&cc_load_policy=1`;
 const THUMB_SRC = `https://i.ytimg.com/vi/${SAMPLE_SESSION.youtubeId}/hqdefault.jpg`;
@@ -26,6 +27,7 @@ type SampleSessionButtonProps = {
 };
 
 export function SampleSessionButton({ className, variant = "button" }: SampleSessionButtonProps) {
+  const siteMode = useSiteMode();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -102,12 +104,12 @@ export function SampleSessionButton({ className, variant = "button" }: SampleSes
             page.
           </p>
         </details>
-        <a
-          href={eventsSiteUrl("/#upcoming")}
+        <JumpLink
+          href={eventsHref(siteMode, "/#upcoming")}
           className="inline-flex items-center justify-center rounded-full bg-gradient-neon px-6 py-3 text-sm font-semibold text-primary-foreground"
         >
           Explore Upcoming Programs
-        </a>
+        </JumpLink>
       </DialogContent>
     </Dialog>
   );

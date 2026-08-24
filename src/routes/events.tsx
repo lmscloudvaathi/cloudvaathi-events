@@ -80,19 +80,19 @@ function EventsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex w-full flex-col items-stretch gap-2 md:items-end">
                   <GatedPrice amount={e.price} />
                   <Link
                     to="/events/$slug"
                     params={{ slug: e.slug }}
-                    className="inline-flex items-center gap-2 rounded-md border border-border/60 px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-border/60 px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/60"
                   >
                     View details
                   </Link>
                   <Link
                     to="/register/$slug"
                     params={{ slug: e.slug }}
-                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-neon px-5 py-2.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03]"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-neon px-5 py-2.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03]"
                   >
                     Register
                   </Link>

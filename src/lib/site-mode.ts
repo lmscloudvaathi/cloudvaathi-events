@@ -30,6 +30,22 @@ export function useSiteMode(): SiteMode {
   return ctx?.siteMode ?? getSiteModeClientFallback();
 }
 
+function asPath(path: string): string {
+  if (!path) return "/";
+  if (path.startsWith("#")) return `/${path}`;
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+/** Events catalog URL — relative when already on the events site so the hash/path actually changes. */
+export function eventsHref(siteMode: SiteMode, path = "/"): string {
+  return siteMode === "events" ? asPath(path) : eventsSiteUrl(path);
+}
+
+/** Marketing URL — relative when already on the marketing site. */
+export function marketingHref(siteMode: SiteMode, path = "/"): string {
+  return siteMode === "marketing" ? asPath(path) : marketingSiteUrl(path);
+}
+
 export function useIsMarketingSite(): boolean {
   return useSiteMode() === "marketing";
 }

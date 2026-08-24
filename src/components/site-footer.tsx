@@ -1,17 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/brand-logo";
+import { JumpLink } from "@/components/jump-link";
 import { SocialLinks } from "@/components/social-links";
 import { CONTACT_EMAIL } from "@/lib/site-config";
-import { eventsSiteUrl, lmsSiteUrl, marketingSiteUrl } from "@/lib/site-mode-shared";
-import { useIsMarketingSite } from "@/lib/site-mode";
+import { eventsHref, marketingHref, useIsMarketingSite, useSiteMode } from "@/lib/site-mode";
+import { lmsSiteUrl } from "@/lib/site-mode-shared";
 import { useSessionUser } from "@/hooks/use-session-user";
 
 export function SiteFooter() {
   const { user } = useSessionUser();
   const marketing = useIsMarketingSite();
+  const siteMode = useSiteMode();
 
   return (
-    <footer className="mt-32 border-t border-border/50 bg-surface/40">
+    <footer className="mt-16 border-t border-border/50 bg-surface/40 sm:mt-32">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <BrandLogo size="sm" />
@@ -33,14 +35,14 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <a href={eventsSiteUrl("/")} className="hover:text-primary">
+                  <JumpLink href={eventsHref(siteMode, "/")} className="hover:text-primary">
                     Courses &amp; events
-                  </a>
+                  </JumpLink>
                 </li>
                 <li>
-                  <a href={lmsSiteUrl()} className="hover:text-primary">
+                  <JumpLink href={lmsSiteUrl()} newTab className="hover:text-primary">
                     LMS
-                  </a>
+                  </JumpLink>
                 </li>
                 <li>
                   <Link to="/about" className="hover:text-primary">
@@ -76,19 +78,19 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <a href={marketingSiteUrl("/")} className="hover:text-primary">
+                  <JumpLink href={marketingHref(siteMode, "/")} className="hover:text-primary">
                     Cloud Vaathi home
-                  </a>
+                  </JumpLink>
                 </li>
                 <li>
-                  <a href={marketingSiteUrl("/about")} className="hover:text-primary">
+                  <JumpLink href={marketingHref(siteMode, "/about")} className="hover:text-primary">
                     Meet Sivva
-                  </a>
+                  </JumpLink>
                 </li>
                 <li>
-                  <a href={lmsSiteUrl()} className="hover:text-primary">
+                  <JumpLink href={lmsSiteUrl()} newTab className="hover:text-primary">
                     LMS
-                  </a>
+                  </JumpLink>
                 </li>
                 {!user ? (
                   <li>
