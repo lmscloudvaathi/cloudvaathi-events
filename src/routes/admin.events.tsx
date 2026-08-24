@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/mock-data";
+import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import {
   adminCreateEventFn,
   adminDeleteEventFn,
@@ -113,7 +114,9 @@ function AdminEvents() {
             <div key={e.slug} className="rounded-2xl glass p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">{e.type}</span>
+                  <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
+                    {categoryFromProgramName(e.title, e.slug)} · {e.type}
+                  </span>
                   <h3 className="mt-3 font-display text-lg font-bold">{e.title}</h3>
                   <p className="mt-1 text-xs text-muted-foreground">{e.venue} · {new Date(e.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
                 </div>

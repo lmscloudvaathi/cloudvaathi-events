@@ -3,15 +3,13 @@ import { EventsCatalog } from "@/components/events-catalog";
 import { MarketingHome } from "@/components/marketing-home";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
+import { HERO_HEADLINE } from "@/lib/site-config";
 import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 import { getCoursesFn, getEventsFn } from "@/lib/rpc";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
     const siteMode = await resolveSiteMode();
-    if (siteMode === "marketing") {
-      return { siteMode, courses: null, events: null };
-    }
     const [courses, events] = await Promise.all([getCoursesFn(), getEventsFn()]);
     return { siteMode, courses, events };
   },
@@ -22,9 +20,9 @@ export const Route = createFileRoute("/")({
       return {
         meta: buildSocialMeta({
           siteBaseUrl,
-          title: "Cloud Vaathi — Learn, Certify, Transform",
+          title: `Cloud Vaathi — ${HERO_HEADLINE}`,
           description:
-            "Engineer the cloud generation. Live cohorts, certification prep, tech events, and a full LMS for structured learning.",
+            "Founded by Sivva Kannan. Live cohorts, certification prep, and tech events that turn cloud, cybersecurity, and AI into career-ready capability.",
         }),
       };
     }
@@ -45,11 +43,7 @@ function IndexPage() {
   const data = Route.useLoaderData();
 
   if (data.siteMode === "marketing") {
-    return <MarketingHome />;
-  }
-
-  if (!data.courses || !data.events) {
-    return <RoutePendingFallback />;
+    return <MarketingHome courses={data.courses} events={data.events} />;
   }
 
   return <EventsCatalog courses={data.courses} events={data.events} />;

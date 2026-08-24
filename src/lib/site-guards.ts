@@ -1,7 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import { eventsSiteUrl, marketingSiteUrl, type SiteMode } from "./site-mode-shared";
 
-const MARKETING_ONLY = new Set(["/", "/testimonials"]);
+const MARKETING_ONLY = new Set(["/", "/testimonials", "/about"]);
 
 const EVENTS_PREFIXES = [
   "/courses",
@@ -26,8 +26,8 @@ export function enforceSiteAccess(pathname: string, siteMode: SiteMode): void {
     return;
   }
 
-  if (pathname === "/testimonials") {
-    throw redirect({ href: marketingSiteUrl("/testimonials") });
+  if (MARKETING_ONLY.has(pathname) && pathname !== "/") {
+    throw redirect({ href: marketingSiteUrl(pathname) });
   }
 }
 

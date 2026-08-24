@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { getEnv } from "./env";
-import { CONTACT_EMAIL } from "../site-config";
+import { BRAND_NAME, CONTACT_EMAIL } from "../site-config";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -100,6 +100,94 @@ export async function sendRegistrationPendingEmail(input: {
       <p>Please return to Cloud Vaathi and complete payment on the registration page to confirm your seat.</p>
       ${detailsByEveningBlock(input.itemKind)}
       <p style="margin-top:1.5rem;color:#555;font-size:14px;">Need help? ${CONTACT_EMAIL}</p>
+    </div>`,
+  });
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function emailRow(label: string, value: string) {
+  return `<tr>
+      <td style="padding:6px 12px 6px 0;color:#555;vertical-align:top;white-space:nowrap;">${escapeHtml(label)}</td>
+      <td style="padding:6px 0;color:#111;"><strong>${escapeHtml(value)}</strong></td>
+    </tr>`;
+}
+
+/** Admin-only alert after a learner successfully registers (paid or free). */
+export async function sendAdminNewRegistrationEmail(input: {
+  learnerName: string;
+  learnerEmail: string;
+  learnerPhone: string;
+  courseSelected: string;
+  paymentLabel: string;
+  registrationDate: string;
+  programName: string;
+  duration: string;
+  startDate: string;
+  mode: string;
+  batchTiming: string;
+}) {
+  const env = getEnv();
+  const adminEmail = CONTACT_EMAIL;
+  const name = input.learnerName.trim() || "Learner";
+  const dashboardUrl = `${env.APP_BASE_URL.replace(/\/$/, "")}/admin/participants`;
+
+  await getTransporter().sendMail({
+    from: env.GMAIL_USER,
+    to: adminEmail,
+    subject: `New Course Registration – ${name}`,
+    text: [
+      "Registration Confirmed",
+      "",
+      "A new user has successfully registered for a course/program.",
+      "",
+      "Registration Details:",
+      `Name: ${name}`,
+      `Email: ${input.learnerEmail}`,
+      `Contact: ${input.learnerPhone}`,
+      `Course Selected: ${input.courseSelected}`,
+      `Payment: ${input.paymentLabel}`,
+      `Registration Date: ${input.registrationDate}`,
+      "",
+      "Program Details:",
+      `Program Name: ${input.programName}`,
+      `Duration: ${input.duration}`,
+      `Start Date: ${input.startDate}`,
+      `Mode: ${input.mode}`,
+      `Batch/Timing: ${input.batchTiming}`,
+      "",
+      `Please check the Admin Dashboard for complete registration details: ${dashboardUrl}`,
+      "",
+      `Thank you,\n${BRAND_NAME}`,
+    ].join("\n"),
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#222;max-width:560px;">
+      <h2 style="margin:0 0 12px;font-size:20px;color:#111;">Registration Confirmed</h2>
+      <p style="margin:0 0 16px;">A new user has successfully registered for a course/program.</p>
+      <p style="margin:0 0 8px;"><strong>Registration Details:</strong></p>
+      <table style="border-collapse:collapse;margin:0 0 16px;">
+        ${emailRow("Name", name)}
+        ${emailRow("Email", input.learnerEmail)}
+        ${emailRow("Contact", input.learnerPhone)}
+        ${emailRow("Course Selected", input.courseSelected)}
+        ${emailRow("Payment", input.paymentLabel)}
+        ${emailRow("Registration Date", input.registrationDate)}
+      </table>
+      <p style="margin:0 0 8px;"><strong>Program Details:</strong></p>
+      <table style="border-collapse:collapse;margin:0 0 16px;">
+        ${emailRow("Program Name", input.programName)}
+        ${emailRow("Duration", input.duration)}
+        ${emailRow("Start Date", input.startDate)}
+        ${emailRow("Mode", input.mode)}
+        ${emailRow("Batch/Timing", input.batchTiming)}
+      </table>
+      <p style="margin:0 0 16px;">Please check the <a href="${escapeHtml(dashboardUrl)}">Admin Dashboard</a> for complete registration details.</p>
+      <p style="margin:0;color:#333;">Thank you,<br />${escapeHtml(BRAND_NAME)}</p>
     </div>`,
   });
 }

@@ -10,13 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as RefundRouteImport } from './routes/refund'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as MyRegistrationsRouteImport } from './routes/my-registrations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as RegisterSlugRouteImport } from './routes/register.$slug'
@@ -34,9 +38,24 @@ const TestimonialsRoute = TestimonialsRouteImport.update({
   path: '/testimonials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyRegistrationsRoute = MyRegistrationsRouteImport.update({
@@ -67,6 +86,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -127,13 +151,17 @@ const AdminCoursesSlugRoute = AdminCoursesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
@@ -148,12 +176,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
@@ -169,13 +201,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/courses': typeof CoursesRouteWithChildren
   '/events': typeof EventsRouteWithChildren
   '/login': typeof LoginRoute
   '/my-registrations': typeof MyRegistrationsRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
   '/testimonials': typeof TestimonialsRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/courses': typeof AdminCoursesRouteWithChildren
@@ -192,13 +228,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
     | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
     | '/my-registrations'
+    | '/privacy'
+    | '/refund'
     | '/signup'
+    | '/terms'
     | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
@@ -213,12 +253,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
     | '/my-registrations'
+    | '/privacy'
+    | '/refund'
     | '/signup'
+    | '/terms'
     | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
@@ -233,13 +277,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
     | '/admin-login'
     | '/courses'
     | '/events'
     | '/login'
     | '/my-registrations'
+    | '/privacy'
+    | '/refund'
     | '/signup'
+    | '/terms'
     | '/testimonials'
     | '/admin/coupons'
     | '/admin/courses'
@@ -255,13 +303,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   CoursesRoute: typeof CoursesRouteWithChildren
   EventsRoute: typeof EventsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MyRegistrationsRoute: typeof MyRegistrationsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundRoute: typeof RefundRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
   TestimonialsRoute: typeof TestimonialsRoute
   RegisterSlugRoute: typeof RegisterSlugRoute
 }
@@ -275,11 +327,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TestimonialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-registrations': {
@@ -322,6 +395,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -470,13 +550,17 @@ const EventsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   CoursesRoute: CoursesRouteWithChildren,
   EventsRoute: EventsRouteWithChildren,
   LoginRoute: LoginRoute,
   MyRegistrationsRoute: MyRegistrationsRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundRoute: RefundRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
   TestimonialsRoute: TestimonialsRoute,
   RegisterSlugRoute: RegisterSlugRoute,
 }

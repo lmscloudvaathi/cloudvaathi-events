@@ -8,12 +8,14 @@ const NAV_ITEMS = [
   { id: "home", label: "Home", href: () => marketingSiteUrl("/") },
   { id: "events", label: "Events", href: () => eventsSiteUrl("/") },
   { id: "lms", label: "LMS", href: () => lmsSiteUrl() },
+  { id: "about", label: "About", href: () => marketingSiteUrl("/about") },
   { id: "testimonials", label: "Testimonials", href: () => marketingSiteUrl("/testimonials") },
 ] as const;
 
 function isNavActive(id: (typeof NAV_ITEMS)[number]["id"], siteMode: SiteMode, pathname: string): boolean {
   if (id === "home") return siteMode === "marketing" && pathname === "/";
   if (id === "events") return siteMode === "events";
+  if (id === "about") return siteMode === "marketing" && pathname === "/about";
   if (id === "testimonials") return siteMode === "marketing" && pathname === "/testimonials";
   return false;
 }
@@ -32,10 +34,16 @@ export function SiteNavBar() {
     >
       {NAV_ITEMS.map((item) => {
         const active = isNavActive(item.id, siteMode, pathname);
+        const href =
+          item.id === "events" && siteMode === "events"
+            ? "/"
+            : item.id === "home" && siteMode === "marketing"
+              ? "/"
+              : item.href();
         return (
           <a
             key={item.id}
-            href={item.href()}
+            href={href}
             className={cn(
               linkClass,
               active && "text-foreground bg-secondary/60",

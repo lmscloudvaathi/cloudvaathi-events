@@ -3,7 +3,7 @@ import type { SiteMode } from "@/lib/site-mode-shared";
 import { EVENTS_SITE_URL, MARKETING_SITE_URL } from "@/lib/site-mode-shared";
 
 export const DEFAULT_SITE_DESCRIPTION =
-  "Cloud Vaathi offers live cloud cohorts, certification prep, workshops, and tech events. Learn, certify, and transform your cloud career.";
+  "Cloud Vaathi offers live cloud cohorts, certification prep, workshops, and tech events. Learn deeply. Certify confidently. Transform your career.";
 
 export function siteBaseUrlForMode(siteMode: SiteMode): string {
   return siteMode === "marketing" ? MARKETING_SITE_URL : EVENTS_SITE_URL;

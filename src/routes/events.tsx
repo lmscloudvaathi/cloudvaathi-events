@@ -1,12 +1,14 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { shouldRedirectCatalogListToHome } from "@/lib/site-guards";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
-import { formatINR } from "@/lib/mock-data";
+import { GatedPrice } from "@/components/gated-price";
+import { CohortAvailabilityLabel } from "@/components/cohort-availability-label";
+import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import { getEventsFn } from "@/lib/rpc";
 import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
@@ -14,7 +16,7 @@ export const Route = createFileRoute("/events")({
   beforeLoad: async ({ location }) => {
     const siteMode = await resolveSiteMode();
     if (shouldRedirectCatalogListToHome(location.pathname, siteMode)) {
-      throw redirect({ to: "/", hash: "events" });
+      throw redirect({ to: "/" });
     }
   },
   loader: async () => ({ events: await getEventsFn() }),
@@ -57,7 +59,9 @@ function EventsPage() {
             <div key={e.slug} className="group relative overflow-hidden rounded-2xl glass p-6 transition-all hover:border-primary/60 md:p-8">
               <div className="grid gap-6 md:grid-cols-[180px_1fr_auto] md:items-center">
                 <div className="flex flex-col items-start gap-2 rounded-xl bg-gradient-neon p-5 text-primary-foreground glow-cyan md:max-w-[160px]">
-                  <span className="text-[10px] font-mono uppercase tracking-wider opacity-80">{e.type}</span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider opacity-80">
+                    {categoryFromProgramName(e.title, e.slug)} · {e.type}
+                  </span>
                   <span className="font-display text-3xl font-bold leading-none">
                     {new Date(e.date).toLocaleDateString("en-IN", { day: "2-digit" })}
                   </span>
@@ -72,12 +76,12 @@ function EventsPage() {
                   <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {e.time}</span>
                     <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> {e.venue}</span>
-                    <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> {e.registered}/{e.seats}</span>
+                    <CohortAvailabilityLabel seats={e.seats} taken={e.registered} startDate={e.date} />
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
-                  <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(e.price)}</span>
+                  <GatedPrice amount={e.price} />
                   <Link
                     to="/events/$slug"
                     params={{ slug: e.slug }}

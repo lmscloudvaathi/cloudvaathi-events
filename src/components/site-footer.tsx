@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Github, Linkedin, Twitter } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
+import { SocialLinks } from "@/components/social-links";
 import { CONTACT_EMAIL } from "@/lib/site-config";
 import { eventsSiteUrl, lmsSiteUrl, marketingSiteUrl } from "@/lib/site-mode-shared";
 import { useIsMarketingSite } from "@/lib/site-mode";
@@ -19,17 +19,7 @@ export function SiteFooter() {
             A community-led academy for cloud, DevOps and platform engineers. Live cohorts, real projects and a network
             that ships.
           </p>
-          <div className="mt-5 flex gap-3">
-            {[Twitter, Github, Linkedin].map((Icon, i) => (
-              <a
-                key={i}
-                href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:text-foreground hover:border-primary"
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
+          <SocialLinks className="mt-5" />
         </div>
 
         <div>
@@ -53,8 +43,28 @@ export function SiteFooter() {
                   </a>
                 </li>
                 <li>
+                  <Link to="/about" className="hover:text-primary">
+                    Meet Sivva
+                  </Link>
+                </li>
+                <li>
                   <Link to="/testimonials" className="hover:text-primary">
                     Testimonials
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy" className="hover:text-primary">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-primary">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/refund" className="hover:text-primary">
+                    Refunds
                   </Link>
                 </li>
               </>
@@ -71,17 +81,37 @@ export function SiteFooter() {
                   </a>
                 </li>
                 <li>
+                  <a href={marketingSiteUrl("/about")} className="hover:text-primary">
+                    Meet Sivva
+                  </a>
+                </li>
+                <li>
                   <a href={lmsSiteUrl()} className="hover:text-primary">
                     LMS
                   </a>
                 </li>
                 {!user ? (
                   <li>
-                    <Link to="/login" className="hover:text-primary">
-                      Sign in
-                    </Link>
+                    <a href="/login" className="hover:text-primary">
+                      Learner login
+                    </a>
                   </li>
                 ) : null}
+                <li>
+                  <Link to="/privacy" className="hover:text-primary">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-primary">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/refund" className="hover:text-primary">
+                    Refunds
+                  </Link>
+                </li>
               </>
             )}
           </ul>
@@ -99,8 +129,13 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-border/40 px-4 py-5 text-center text-xs text-muted-foreground">
-        © 2026 Cloud Vaathi. Built for the cloud generation.
+      <div className="border-t border-border/40 px-4 py-5">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-center text-xs text-muted-foreground sm:text-left">
+            © 2026 Cloud Vaathi. Learn deeply. Certify confidently. Transform your career.
+          </p>
+          <SocialLinks />
+        </div>
       </div>
     </footer>
   );

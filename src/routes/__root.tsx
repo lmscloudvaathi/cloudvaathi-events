@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   Outlet,
   Link,
@@ -12,9 +13,24 @@ import appCss from "../styles.css?url";
 import { FAVICON_PATH } from "@/lib/site-config";
 import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 import { NavigationProgress } from "@/components/navigation-progress";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { enforceSiteAccess } from "@/lib/site-guards";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
 import type { SiteMode } from "@/lib/site-mode-shared";
+
+const RAZORPAY_CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+/** Load after hydration — checkout.js injects `.razorpay-container` into the DOM and breaks SSR match if loaded in <head>. */
+function RazorpayCheckoutScript() {
+  useEffect(() => {
+    if (document.querySelector(`script[src="${RAZORPAY_CHECKOUT_SRC}"]`)) return;
+    const script = document.createElement("script");
+    script.src = RAZORPAY_CHECKOUT_SRC;
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+  return null;
+}
 
 function NotFoundComponent() {
   return (
@@ -129,7 +145,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
-        <script src="https://checkout.razorpay.com/v1/checkout.js" />
       </head>
       <body>
         {children}
@@ -144,6 +159,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RazorpayCheckoutScript />
+      <ScrollToTop />
       <NavigationProgress />
       <Outlet />
     </QueryClientProvider>

@@ -1,12 +1,14 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { shouldRedirectCatalogListToHome } from "@/lib/site-guards";
 import { resolveSiteMode } from "@/lib/resolve-site-mode";
-import { Clock, Users } from "lucide-react";
+import { Clock } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AuroraBg } from "@/components/aurora-bg";
 import { RoutePendingFallback } from "@/components/route-pending-fallback";
-import { formatINR } from "@/lib/mock-data";
+import { GatedPrice } from "@/components/gated-price";
+import { CohortAvailabilityLabel } from "@/components/cohort-availability-label";
+import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import { getCoursesFn } from "@/lib/rpc";
 import { buildSocialMeta, siteBaseUrlForMode } from "@/lib/site-meta";
 
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/courses")({
   beforeLoad: async ({ location }) => {
     const siteMode = await resolveSiteMode();
     if (shouldRedirectCatalogListToHome(location.pathname, siteMode)) {
-      throw redirect({ to: "/", hash: "courses" });
+      throw redirect({ to: "/" });
     }
   },
   loader: async () => ({ courses: await getCoursesFn() }),
@@ -68,8 +70,11 @@ function CoursesPage() {
               <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-gradient-neon opacity-10 blur-2xl transition-opacity group-hover:opacity-30" />
 
               <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
+                  {categoryFromProgramName(c.title, c.slug)}
+                </span>
                 {c.tags.map((t) => (
-                  <span key={t} className="rounded-full bg-secondary/60 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">{t}</span>
+                  <span key={t} className="rounded-full border border-border/50 px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{t}</span>
                 ))}
               </div>
 
@@ -78,7 +83,7 @@ function CoursesPage() {
 
               <div className="mt-5 flex items-center gap-4 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {c.duration}</span>
-                <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> {c.enrolled}/{c.seats}</span>
+                <CohortAvailabilityLabel seats={c.seats} taken={c.enrolled} startDate={c.startDate} />
               </div>
 
               <div className="mt-6 flex items-end justify-between border-t border-border/50 pt-5">
@@ -86,7 +91,7 @@ function CoursesPage() {
                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Starts</div>
                   <div className="text-sm font-semibold">{formatStartDate(c.startDate)}</div>
                 </div>
-                <span className="font-display text-2xl font-bold text-gradient-neon">{formatINR(c.price)}</span>
+                <GatedPrice amount={c.price} />
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link

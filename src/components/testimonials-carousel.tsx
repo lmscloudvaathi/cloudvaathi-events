@@ -6,6 +6,12 @@ const AUTO_MS = 9000;
 
 const TESTIMONIALS = [
   {
+    name: "John Salvin Duke",
+    org: "Software Tester",
+    quote:
+      "Big thanks to Sivva for the wonderful training. Having 3 years' experience in testing with no coding knowledge, I secured 6 Azure certifications in 23 days.",
+  },
+  {
     name: "Manoj Nair",
     org: "Ford",
     quote:
@@ -36,6 +42,8 @@ const TESTIMONIALS = [
       "I watched Adelene's videos related to the AI 900 course. Her explanations were clear and easy to understand. After watching the video, I tested my skills with Sivva's Udemy AI 900 practice bank! Both Sivva and Adelene constantly reminded us and motivated us to take the exam, and they were ready to help when needed! I passed the certification with their motivation and support! Thanks to both of them!",
   },
 ] as const;
+
+export const FEATURED_HOME_TESTIMONIAL = TESTIMONIALS[0];
 
 export function TestimonialsCarousel() {
   const [index, setIndex] = useState(0);

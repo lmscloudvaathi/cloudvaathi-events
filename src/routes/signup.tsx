@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Inbox, Lock, Mail, Phone, User } from "lucide-react";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
 import { Spinner } from "@/components/spinner";
@@ -174,6 +175,7 @@ function SignupPage() {
           </p>
         </div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

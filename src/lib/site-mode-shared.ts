@@ -6,8 +6,12 @@ export const EVENTS_HOSTS = new Set(["events.cloudvaathi.in", "www.events.cloudv
 export const LOCAL_MARKETING_PORT = 8080;
 export const LOCAL_EVENTS_PORT = 8081;
 
-export const MARKETING_SITE_URL = import.meta.env.VITE_MARKETING_SITE_URL ?? "https://cloudvaathi.in";
-export const EVENTS_SITE_URL = import.meta.env.VITE_EVENTS_SITE_URL ?? "https://events.cloudvaathi.in";
+export const MARKETING_SITE_URL =
+  import.meta.env.VITE_MARKETING_SITE_URL ??
+  (import.meta.env.DEV ? `http://localhost:${LOCAL_MARKETING_PORT}` : "https://cloudvaathi.in");
+export const EVENTS_SITE_URL =
+  import.meta.env.VITE_EVENTS_SITE_URL ??
+  (import.meta.env.DEV ? `http://localhost:${LOCAL_EVENTS_PORT}` : "https://events.cloudvaathi.in");
 export const LMS_SITE_URL = import.meta.env.VITE_LMS_SITE_URL ?? "https://lms.cloudvaathi.in";
 
 export function modeFromHost(host: string): SiteMode | null {
@@ -26,13 +30,17 @@ export function modeFromLocalPort(port: string | number | undefined): SiteMode |
 }
 
 export function eventsSiteUrl(path = "/"): string {
-  const base = EVENTS_SITE_URL.replace(/\/$/, "");
+  const base = (
+    import.meta.env.DEV ? `http://localhost:${LOCAL_EVENTS_PORT}` : EVENTS_SITE_URL
+  ).replace(/\/$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }
 
 export function marketingSiteUrl(path = "/"): string {
-  const base = MARKETING_SITE_URL.replace(/\/$/, "");
+  const base = (
+    import.meta.env.DEV ? `http://localhost:${LOCAL_MARKETING_PORT}` : MARKETING_SITE_URL
+  ).replace(/\/$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }

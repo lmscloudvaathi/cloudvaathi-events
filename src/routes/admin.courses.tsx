@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/mock-data";
+import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import {
   adminCoursesFn,
   adminCreateCourseFn,
@@ -107,6 +108,7 @@ function AdminCourses() {
             <thead className="border-b border-border/50 bg-surface/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-5 py-4 font-medium">Course</th>
+                <th className="px-5 py-4 font-medium">Category</th>
                 <th className="px-5 py-4 font-medium">Level</th>
                 <th className="px-5 py-4 font-medium">Starts</th>
                 <th className="px-5 py-4 font-medium">Seats</th>
@@ -123,6 +125,11 @@ function AdminCourses() {
                     <td className="px-5 py-4">
                       <p className="font-semibold">{c.title}</p>
                       <p className="text-xs text-muted-foreground">{c.instructor}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-full bg-secondary/60 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-neon-cyan">
+                        {categoryFromProgramName(c.title, c.slug)}
+                      </span>
                     </td>
                     <td className="px-5 py-4">
                       <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider">{c.level}</span>

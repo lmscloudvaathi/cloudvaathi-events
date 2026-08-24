@@ -30,6 +30,61 @@ let bootstrapCompletedInIsolate = false;
 /** Single-flight bootstrap promise (parallel loaders share one run). */
 let bootstrapPromise: Promise<void> | null = null;
 
+type MysqlConn = Awaited<ReturnType<typeof openMysqlBootstrapConnection>>;
+
+async function columnExists(conn: MysqlConn, table: string, column: string): Promise<boolean> {
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS n FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+    [table, column],
+  );
+  const n = Array.isArray(rows) ? Number((rows[0] as { n?: number }).n ?? 0) : 0;
+  return n > 0;
+}
+
+/** TiDB does not support ADD COLUMN IF NOT EXISTS. Check information_schema, then ALTER. */
+async function ensureDateColumn(conn: MysqlConn, table: string, column: string): Promise<void> {
+  if (await columnExists(conn, table, column)) return;
+  try {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` DATE NULL`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/duplicate column/i.test(msg)) return;
+    throw err;
+  }
+}
+
+let lifecycleColumnsReady = false;
+
+async function ensureProgramLifecycleColumns(conn: MysqlConn): Promise<void> {
+  if (lifecycleColumnsReady) return;
+
+  for (const table of ["courses", "events"] as const) {
+    for (const column of ["registration_open_date", "registration_close_date", "program_end_date"] as const) {
+      await ensureDateColumn(conn, table, column);
+    }
+  }
+
+  await conn.query(`
+    UPDATE courses
+    SET
+      registration_open_date = DATE_SUB(start_date, INTERVAL 30 DAY),
+      registration_close_date = start_date,
+      program_end_date = start_date
+    WHERE registration_open_date IS NULL
+  `);
+  await conn.query(`
+    UPDATE events
+    SET
+      registration_open_date = DATE_SUB(event_date, INTERVAL 21 DAY),
+      registration_close_date = event_date,
+      program_end_date = event_date
+    WHERE registration_open_date IS NULL
+  `);
+
+  lifecycleColumnsReady = true;
+}
+
 async function runBootstrapOnce(): Promise<void> {
   const conn = await openMysqlBootstrapConnection();
   await conn.query(`
@@ -44,18 +99,28 @@ async function runBootstrapOnce(): Promise<void> {
     const [rows] = await conn.query("SELECT name FROM _migrations WHERE name = ?", [name]);
     if (Array.isArray(rows) && rows.length > 0) continue;
     for (const statement of sql.split(/;\s*\n/)) {
-      const trimmed = statement.trim();
-      if (!trimmed) continue;
-      await conn.query(trimmed);
+      const stripped = statement
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("--"))
+        .join("\n");
+      if (!stripped) continue;
+      await conn.query(stripped);
     }
     await conn.query("INSERT INTO _migrations (name) VALUES (?)", [name]);
   }
 
+  await ensureProgramLifecycleColumns(conn);
   await seedInitialData();
 }
 
 export async function ensureDatabaseReady(): Promise<void> {
-  if (bootstrapCompletedInIsolate) return;
+  if (bootstrapCompletedInIsolate && lifecycleColumnsReady) return;
+  if (bootstrapCompletedInIsolate && !lifecycleColumnsReady) {
+    const conn = await openMysqlBootstrapConnection();
+    await ensureProgramLifecycleColumns(conn);
+    return;
+  }
   bootstrapPromise ??= runBootstrapOnce()
     .then(() => {
       bootstrapCompletedInIsolate = true;

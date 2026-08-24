@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Lock, Mail } from "lucide-react";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { AuroraBg } from "@/components/aurora-bg";
 import { Spinner } from "@/components/spinner";
@@ -363,6 +364,7 @@ function RegisterPage() {
         <div className="flex justify-center px-4 py-24">
           <div className="h-48 w-full max-w-lg animate-pulse rounded-2xl bg-muted/30" />
         </div>
+        <SiteFooter />
       </div>
     );
   }
@@ -379,6 +381,7 @@ function RegisterPage() {
         <div className="flex justify-center px-4 py-24">
           <div className="h-48 w-full max-w-lg animate-pulse rounded-2xl bg-muted/30" />
         </div>
+        <SiteFooter />
       </div>
     );
   }
@@ -405,6 +408,7 @@ function RegisterPage() {
         <div className="flex justify-center px-4 py-24">
           <div className="h-48 w-full max-w-lg animate-pulse rounded-2xl bg-muted/30" />
         </div>
+        <SiteFooter />
       </div>
     );
   }
@@ -578,6 +582,7 @@ function RegisterPage() {
           </aside>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }
@@ -632,6 +637,7 @@ function RegistrationSuccessView({
           ) : null}
         </div>
       </div>
+      <SiteFooter />
     </div>
   );
 }
@@ -658,7 +664,7 @@ function GuestRegisterGate({
           <h1 className="font-display text-2xl font-bold">Sign in to register</h1>
           <p className="mt-3 text-sm text-muted-foreground">
             Sign in or create an account to register for{" "}
-            <span className="font-semibold text-foreground">{item?.title}</span>. Pricing is shown on the detail page — free items enroll without payment.
+            <span className="font-semibold text-foreground">{item?.title}</span>. The fee is shown after you sign in.
           </p>
           <div className="mt-8 flex flex-col gap-3">
             <Link
@@ -681,6 +687,7 @@ function GuestRegisterGate({
           </Link>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }

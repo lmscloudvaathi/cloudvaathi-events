@@ -1,13 +1,56 @@
 import { dbQuery } from "./db";
-import { getPurchasableItem } from "./catalog";
+import { getPurchasableItem, getProgramNotifyDetails } from "./catalog";
 import { createRazorpayOrder, verifyRazorpaySignature } from "./razorpay";
 import { incrementCouponUse, resolveCouponForCheckout } from "./coupons";
 import {
+  sendAdminNewRegistrationEmail,
   sendEnrollmentConfirmationEmail,
   sendRegistrationPendingEmail,
 } from "./mailer";
 
 type ItemKind = "course" | "event";
+
+async function notifyAdminOfSuccessfulRegistration(input: {
+  userId: number;
+  userName: string;
+  userEmail: string;
+  itemType: ItemKind;
+  itemSlug: string;
+  itemTitle: string;
+  amount: number;
+}) {
+  try {
+    const phoneRows = await dbQuery<Array<{ phone: string | null }>>(
+      `SELECT phone FROM users WHERE id=? LIMIT 1`,
+      [input.userId],
+    );
+    const details = await getProgramNotifyDetails(input.itemType, input.itemSlug);
+    const paymentLabel = input.amount <= 0 ? "Free" : `Paid / INR ${input.amount}`;
+    const registrationDate = new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    await sendAdminNewRegistrationEmail({
+      learnerName: input.userName,
+      learnerEmail: input.userEmail,
+      learnerPhone: phoneRows[0]?.phone?.trim() || "—",
+      courseSelected: input.itemTitle,
+      paymentLabel,
+      registrationDate,
+      programName: details?.title ?? input.itemTitle,
+      duration: details?.duration ?? "See dashboard",
+      startDate: details?.startDate ?? "TBD",
+      mode: details?.mode ?? "Online",
+      batchTiming: details?.batchTiming ?? "See dashboard",
+    });
+  } catch (error) {
+    console.error("Admin registration notification failed", error);
+  }
+}
 
 async function resolvePricing(
   itemType: ItemKind,
@@ -108,6 +151,16 @@ async function finalizeFullCouponEnrollment(input: {
   } catch (error) {
     console.error("Enrollment confirmation mail failed", error);
   }
+
+  await notifyAdminOfSuccessfulRegistration({
+    userId: input.userId,
+    userName: input.userName,
+    userEmail: input.userEmail,
+    itemType: input.itemType,
+    itemSlug: input.itemSlug,
+    itemTitle: input.itemTitle,
+    amount: 0,
+  });
 
   return {
     orderRef,
@@ -340,6 +393,16 @@ export async function completeFreeEnrollment(input: {
     console.error("Free enrollment mail failed", error);
   }
 
+  await notifyAdminOfSuccessfulRegistration({
+    userId: input.userId,
+    userName: input.userName,
+    userEmail: input.userEmail,
+    itemType: input.itemType,
+    itemSlug: input.itemSlug,
+    itemTitle: item.title,
+    amount: 0,
+  });
+
   return { success: true as const, orderRef };
 }
 
@@ -435,6 +498,16 @@ export async function confirmPayment(input: {
     } catch (error) {
       console.error("Enrollment confirmation mail failed", error);
     }
+
+    await notifyAdminOfSuccessfulRegistration({
+      userId: input.userId,
+      userName: input.userName,
+      userEmail: input.userEmail,
+      itemType: order.item_type,
+      itemSlug: order.item_slug,
+      itemTitle: item.title,
+      amount: order.amount,
+    });
   }
 
   return { success: true, orderRef: order.order_ref };

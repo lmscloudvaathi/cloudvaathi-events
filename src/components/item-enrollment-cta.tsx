@@ -82,7 +82,7 @@ export function ItemEnrollmentCta({ itemType, slug, registerLabel = "Register" }
     return (
       <div className="mt-6 space-y-3">
         <p className="text-center text-[11px] text-muted-foreground">
-          Sign in or create an account to register (payment only if this {kindLabel(itemType)} has a fee).
+          Sign in to view the fee and register for this {kindLabel(itemType)}.
         </p>
         <Link
           to="/login"

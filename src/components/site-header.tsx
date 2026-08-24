@@ -4,7 +4,6 @@ import { BrandLogo } from "@/components/brand-logo";
 import { SiteNavBar } from "@/components/site-nav-bar";
 import { useSessionUser } from "@/hooks/use-session-user";
 import { useIsEventsSite } from "@/lib/site-mode";
-import { marketingSiteUrl } from "@/lib/site-mode-shared";
 import { clearSessionToken } from "@/lib/session-client";
 
 /** Shared header: Home · Events · LMS · Testimonials on both marketing and events apps. */
@@ -21,7 +20,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 glass border-b border-border/50">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <BrandLogo linked homeHref={marketingSiteUrl("/")} size="md" />
+        <BrandLogo linked size="md" />
 
         <SiteNavBar />
 
