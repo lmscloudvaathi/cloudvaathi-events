@@ -48,7 +48,7 @@ export function EventsCatalog({ courses, events }: CatalogData) {
     return list.sort(byStart);
   }, [courses, events]);
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("upcoming");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<ProgramCategory | "all">("all");
 
   const filtered = programs.filter((p) => {
@@ -73,7 +73,7 @@ export function EventsCatalog({ courses, events }: CatalogData) {
       <section className="px-4 pt-20 pb-10 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-neon-cyan">// programs</p>
-          <h1 className="mt-3 font-display text-4xl font-bold sm:text-6xl">Upcoming Programs &amp; Events</h1>
+          <h1 className="mt-3 font-display text-4xl font-bold sm:text-6xl">Programs &amp; Events</h1>
           <p className="mt-4 max-w-3xl text-lg text-muted-foreground">
             Live cohorts, certification bootcamps and mentor-led sessions in Cloud, Cybersecurity, AI and Architecture —
             led by {FOUNDER_NAME} and the Cloud Vaathi team.

@@ -19,3 +19,30 @@ export function formatDateForInput(value: unknown): string {
   const d = String(parsed.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+/** Shift a YYYY-MM-DD calendar date by `days` (local arithmetic, date-only). */
+export function shiftIsoDate(iso: string, days: number): string {
+  const base = formatDateForInput(iso);
+  if (!base) return "";
+  const [y, m, d] = base.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+/** Default registration window for events (open 21 days before; close/end on event day). */
+export function defaultEventLifecycleDates(eventDate: string): {
+  registrationOpenDate: string;
+  registrationCloseDate: string;
+  programEndDate: string;
+} {
+  const date = formatDateForInput(eventDate);
+  return {
+    registrationOpenDate: shiftIsoDate(date, -21),
+    registrationCloseDate: date,
+    programEndDate: date,
+  };
+}

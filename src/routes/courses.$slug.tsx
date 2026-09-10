@@ -290,10 +290,12 @@ function CourseDetail() {
               <section className="mt-12">
                 <h2 className="font-display text-2xl font-bold">Sample session</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Thumbnail only until you press play. Captions are available in the player.
+                  {program.category === "AI & GenAI"
+                    ? "AI demo matched to this cohort. Thumbnail only until you press play. Captions are available in the player."
+                    : "Cloud demo matched to this cohort. Thumbnail only until you press play. Captions are available in the player."}
                 </p>
                 <div className="mt-4 max-w-xl">
-                  <SampleSessionButton variant="card" />
+                  <SampleSessionButton variant="card" category={program.category} />
                 </div>
               </section>
             </div>

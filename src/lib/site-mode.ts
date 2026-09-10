@@ -1,5 +1,11 @@
 import { useRouteContext } from "@tanstack/react-router";
-import { modeFromHost, modeFromLocalPort, type SiteMode } from "./site-mode-shared";
+import {
+  eventsSiteUrl,
+  marketingSiteUrl,
+  modeFromHost,
+  modeFromLocalPort,
+  type SiteMode,
+} from "./site-mode-shared";
 
 export type { SiteMode } from "./site-mode-shared";
 export {

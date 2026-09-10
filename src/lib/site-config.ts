@@ -56,9 +56,26 @@ export const TRUST_STATS = [
 
 export const CREDENTIAL_SNAPSHOT = ["CISM", "CISSP", "CCSP", "AZ-500", "TOGAF", "AAIA"] as const;
 
-/** Mentor intro + teaching demo on the Cloud Vaathi channel. Captions available in the player. */
-export const SAMPLE_SESSION = {
-  youtubeId: "fGziJ958T-E",
-  title: "Think like a manager — a sample Cloud Vaathi session",
-  thumbnailAlt: "Sivva Kannan teaching a Cloud Vaathi sample session on certification mindset",
-} as const;
+/** Mentor intro + teaching demos on the Cloud Vaathi channel. Captions available in the player. */
+export type SampleSessionTrack = "cloud" | "ai";
+
+export const SAMPLE_SESSIONS = {
+  cloud: {
+    youtubeId: "mwZ-epYrjOQ",
+    title: "Cloud demo — Virtual Network & NSG port filtering",
+    thumbnailAlt: "Cloud Vaathi demo on Azure Virtual Network and NSG port filtering",
+    ctaLabel: "Watch Cloud Sample",
+  },
+  ai: {
+    youtubeId: "BeGDGyWEZqA",
+    title: "AI demo — Retrieval-Augmented Generation (RAG)",
+    thumbnailAlt: "Cloud Vaathi demo on Retrieval-Augmented Generation (RAG)",
+    ctaLabel: "Watch AI Sample",
+  },
+} as const satisfies Record<
+  SampleSessionTrack,
+  { youtubeId: string; title: string; thumbnailAlt: string; ctaLabel: string }
+>;
+
+/** Default sample when no program category is known (homepage / marketing). */
+export const SAMPLE_SESSION = SAMPLE_SESSIONS.cloud;

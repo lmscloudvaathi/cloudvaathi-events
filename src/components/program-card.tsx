@@ -51,7 +51,7 @@ export function ProgramCard({ program }: { program: HubProgram }) {
       </div>
       <div className="mt-4 flex flex-col gap-2">
         <CardActions program={program} />
-        <SampleSessionButton variant="link" className="self-start" />
+        <SampleSessionButton variant="link" className="self-start" category={program.category} />
       </div>
     </article>
   );

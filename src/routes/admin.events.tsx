@@ -1,8 +1,9 @@
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/mock-data";
 import { categoryFromProgramName } from "@/lib/program-lifecycle";
 import {
+  adminCloneEventFn,
   adminCreateEventFn,
   adminDeleteEventFn,
   adminEventsFn,
@@ -15,21 +16,24 @@ export const Route = createFileRoute("/admin/events")({
   component: AdminEvents,
 });
 
+type AdminEventRow = {
+  slug: string;
+  title: string;
+  type: string;
+  event_date: string;
+  venue: string;
+  seats: number;
+  registered: number;
+  price: number;
+  active: number;
+};
+
 function AdminEvents() {
   const location = useLocation();
-  const [events, setEvents] = useState<
-    Array<{
-      slug: string;
-      title: string;
-      type: string;
-      event_date: string;
-      venue: string;
-      seats: number;
-      registered: number;
-      price: number;
-      active: number;
-    }>
-  >([]);
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<AdminEventRow[]>([]);
+  const [busySlug, setBusySlug] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const [form, setForm] = useState({
     slug: "",
     title: "",
@@ -51,16 +55,35 @@ function AdminEvents() {
     return <Outlet />;
   }
 
+  async function cloneEvent(slug: string, publish: boolean) {
+    const token = getSessionToken();
+    if (!token) return;
+    setActionError("");
+    setBusySlug(slug);
+    try {
+      const result = await adminCloneEventFn({ data: { token, slug, publish } });
+      load();
+      await navigate({ to: "/admin/events/$slug", params: { slug: result.slug } });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Clone failed");
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-neon-cyan">// programming</p>
           <h1 className="mt-2 font-display text-4xl font-bold">Events</h1>
-          <p className="mt-1 text-muted-foreground">Manage workshops, hackathons, summits and meetups.</p>
+          <p className="mt-1 text-muted-foreground">
+            Create, clone, edit and publish workshops, hackathons, summits and meetups.
+          </p>
         </div>
         <p className="text-xs text-muted-foreground">Live records from TiDB</p>
       </header>
+      {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
       <form
         className="space-y-4 rounded-2xl glass p-4"
         onSubmit={async (e) => {
@@ -110,6 +133,7 @@ function AdminEvents() {
       <div className="grid gap-4 md:grid-cols-2">
         {events.map((e) => {
           const pct = Math.round((e.registered / e.seats) * 100);
+          const busy = busySlug === e.slug;
           return (
             <div key={e.slug} className="rounded-2xl glass p-5">
               <div className="flex items-start justify-between gap-3">
@@ -119,16 +143,37 @@ function AdminEvents() {
                   </span>
                   <h3 className="mt-3 font-display text-lg font-bold">{e.title}</h3>
                   <p className="mt-1 text-xs text-muted-foreground">{e.venue} · {new Date(e.event_date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+                  {!e.active ? (
+                    <p className="mt-1 text-[11px] font-medium text-amber-300/90">Draft · not visible on the site</p>
+                  ) : null}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
                   <a
                     href={`/admin/events/${e.slug}`}
                     className="text-xs text-primary hover:underline"
                   >
                     Edit
                   </a>
+                  <button
+                    type="button"
+                    className="text-xs text-neon-cyan disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => void cloneEvent(e.slug, false)}
+                  >
+                    {busy ? "Cloning…" : "Clone"}
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs text-emerald-300 disabled:opacity-50"
+                    disabled={busy}
+                    title="Clone and publish immediately"
+                    onClick={() => void cloneEvent(e.slug, true)}
+                  >
+                    Clone & publish
+                  </button>
                   {e.active ? (
                     <button
+                      type="button"
                       className="text-xs text-destructive"
                       onClick={async () => {
                         const token = getSessionToken();
@@ -137,10 +182,11 @@ function AdminEvents() {
                         load();
                       }}
                     >
-                      Archive
+                      Unpublish
                     </button>
                   ) : (
                     <button
+                      type="button"
                       className="text-xs text-emerald-300"
                       onClick={async () => {
                         const token = getSessionToken();
@@ -149,10 +195,11 @@ function AdminEvents() {
                         load();
                       }}
                     >
-                      Restore
+                      Publish
                     </button>
                   )}
                   <button
+                    type="button"
                     className="text-xs text-destructive/80"
                     onClick={async () => {
                       if (!window.confirm("Delete this event permanently?")) return;
@@ -178,7 +225,7 @@ function AdminEvents() {
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
-                <span className="text-xs text-muted-foreground">{e.active ? "Ticket" : "Ticket · Archived"}</span>
+                <span className="text-xs text-muted-foreground">{e.active ? "Ticket · Published" : "Ticket · Draft"}</span>
                 <span className="font-display text-lg font-bold text-gradient-neon">{formatINR(e.price)}</span>
               </div>
             </div>

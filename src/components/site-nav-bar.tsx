@@ -112,5 +112,3 @@ export function SiteMobileNav() {
     </Sheet>
   );
 }
-
-export { SiteMobileNav as SiteMobileNav };

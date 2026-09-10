@@ -14,8 +14,8 @@
     "TIDB_PORT": "4000",
     "TIDB_DATABASE": "cloud_vaathi",
     "TIDB_USER": "4Vobd5ZCyt1QisJ.root",
-    "ADMIN_SEED_EMAIL": "admin@cloudvaathi.com",
-    "ADMIN_SEED_NAME": "Cloud Vaathi Admin",
+    "ADMIN_SEED_EMAIL": "jagathishwaranparthiban@iqmath.in",
+    "ADMIN_SEED_NAME": "Jagathishwaran Parthiban",
     "GMAIL_USER": "lmscloudvaathi@gmail.com",
     "RAZORPAY_KEY_ID": "rzp_live_SmnIHTMb63Ulu7"
   }

@@ -420,6 +420,30 @@ export const adminCreateEventFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const adminCloneEventFn = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        token: z.string(),
+        slug: z.string().min(1),
+        publish: z.boolean().optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { ensureDatabaseReady } = await import("./server/migrate");
+    const { decodeSessionToken } = await import("./server/auth");
+    const { adminCloneEvent } = await import("./server/admin");
+    await ensureDatabaseReady();
+    const user = decodeSessionToken(data.token);
+    if (!user || user.role !== "admin") throw new Error("Forbidden");
+    const cloned = await adminCloneEvent({
+      sourceSlug: data.slug,
+      publish: data.publish,
+    });
+    return { ok: true as const, slug: cloned.slug };
+  });
+
 export const adminEventBySlugFn = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => z.object({ token: z.string(), slug: z.string() }).parse(data))
   .handler(async ({ data }) => {
@@ -447,6 +471,9 @@ export const adminUpdateEventFn = createServerFn({ method: "POST" })
         seats: z.number().int().positive(),
         description: z.string().min(10),
         speakers: z.array(z.string()),
+        registrationOpenDate: z.string().min(1),
+        registrationCloseDate: z.string().min(1),
+        programEndDate: z.string().min(1),
         active: z.boolean(),
       })
       .parse(data),

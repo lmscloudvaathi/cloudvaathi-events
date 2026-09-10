@@ -1,4 +1,4 @@
-import { formatDateForInput } from "@/lib/format-date-input";
+import { defaultEventLifecycleDates, formatDateForInput } from "@/lib/format-date-input";
 import { dbQuery } from "./db";
 
 function parseDbStringArray(value: unknown): string[] {
@@ -232,10 +232,12 @@ export async function adminCreateEvent(input: {
   price: number;
   seats: number;
 }) {
+  const lifecycle = defaultEventLifecycleDates(input.date);
   await dbQuery(
     `INSERT INTO events
-     (slug, title, type, event_date, event_time, venue, price, seats, registered, description, speakers_json, active)
-     VALUES (?, ?, ?, ?, '10:00 - 13:00', ?, ?, ?, 0, ?, ?, 1)`,
+     (slug, title, type, event_date, event_time, venue, price, seats, registered, description, speakers_json,
+      registration_open_date, registration_close_date, program_end_date, active)
+     VALUES (?, ?, ?, ?, '10:00 - 13:00', ?, ?, ?, 0, ?, ?, ?, ?, ?, 1)`,
     [
       input.slug,
       input.title,
@@ -246,8 +248,94 @@ export async function adminCreateEvent(input: {
       input.seats,
       `${input.title} with practical sessions and Q&A.`,
       JSON.stringify(["Cloud Vaathi Speaker"]),
+      lifecycle.registrationOpenDate,
+      lifecycle.registrationCloseDate,
+      lifecycle.programEndDate,
     ],
   );
+}
+
+function cloneEventSlugBase(slug: string): string {
+  return slug.replace(/-copy(?:-\d+)?$/i, "") || slug;
+}
+
+async function allocateClonedEventSlug(sourceSlug: string): Promise<string> {
+  const base = cloneEventSlugBase(sourceSlug);
+  for (let n = 1; n < 1000; n++) {
+    const candidate = n === 1 ? `${base}-copy` : `${base}-copy-${n}`;
+    const rows = await dbQuery<Array<{ slug: string }>>(
+      `SELECT slug FROM events WHERE slug=? LIMIT 1`,
+      [candidate],
+    );
+    if (!rows[0]) return candidate;
+  }
+  throw new Error("Could not allocate a unique slug for the cloned event");
+}
+
+function cloneEventTitle(title: string): string {
+  const trimmed = title.replace(/\s*\(Copy(?: \d+)?\)\s*$/i, "").trim() || title;
+  return `${trimmed} (Copy)`;
+}
+
+/** Duplicate an event with a new slug. Registration count resets to 0. Starts as draft unless publish=true. */
+export async function adminCloneEvent(input: {
+  sourceSlug: string;
+  publish?: boolean;
+}): Promise<{ slug: string }> {
+  const rows = await dbQuery<
+    Array<{
+      slug: string;
+      title: string;
+      type: "Workshop" | "Tech Talk" | "Hackathon" | "Meetup";
+      event_date: string;
+      event_time: string;
+      venue: string;
+      price: number;
+      seats: number;
+      description: string;
+      speakers_json: unknown;
+    }>
+  >(
+    `SELECT slug, title, type, event_date, event_time, venue, price, seats, description, speakers_json
+     FROM events WHERE slug=? LIMIT 1`,
+    [input.sourceSlug],
+  );
+  const source = rows[0];
+  if (!source) throw new Error("Event not found");
+
+  const newSlug = await allocateClonedEventSlug(source.slug);
+  const speakersJson =
+    typeof source.speakers_json === "string"
+      ? source.speakers_json
+      : JSON.stringify(parseDbStringArray(source.speakers_json));
+  const publish = input.publish === true;
+  const eventDate = formatDateForInput(source.event_date);
+  const lifecycle = defaultEventLifecycleDates(eventDate);
+
+  await dbQuery(
+    `INSERT INTO events
+     (slug, title, type, event_date, event_time, venue, price, seats, registered, description, speakers_json,
+      registration_open_date, registration_close_date, program_end_date, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+    [
+      newSlug,
+      cloneEventTitle(source.title),
+      source.type,
+      eventDate,
+      source.event_time,
+      source.venue,
+      source.price,
+      source.seats,
+      source.description,
+      speakersJson,
+      lifecycle.registrationOpenDate,
+      lifecycle.registrationCloseDate,
+      lifecycle.programEndDate,
+      publish ? 1 : 0,
+    ],
+  );
+
+  return { slug: newSlug };
 }
 
 export async function adminGetEventBySlug(slug: string) {
@@ -263,26 +351,37 @@ export async function adminGetEventBySlug(slug: string) {
       seats: number;
       description: string;
       speakers_json: unknown;
+      registration_open_date: string | null;
+      registration_close_date: string | null;
+      program_end_date: string | null;
       active: number;
     }>
   >(
-    `SELECT slug,title,type,event_date,event_time,venue,price,seats,description,speakers_json,active
+    `SELECT slug,title,type,event_date,event_time,venue,price,seats,description,speakers_json,
+            registration_open_date, registration_close_date, program_end_date, active
      FROM events WHERE slug=? LIMIT 1`,
     [slug],
   );
   const e = rows[0];
   if (!e) return null;
+  const date = formatDateForInput(e.event_date);
+  const lifecycle = defaultEventLifecycleDates(date);
   return {
     slug: e.slug,
     title: e.title,
     type: e.type,
-    date: formatDateForInput(e.event_date),
+    date,
     time: e.event_time,
     venue: e.venue,
     price: e.price,
     seats: e.seats,
     description: e.description,
     speakers: parseDbStringArray(e.speakers_json),
+    registrationOpenDate:
+      formatDateForInput(e.registration_open_date) || lifecycle.registrationOpenDate,
+    registrationCloseDate:
+      formatDateForInput(e.registration_close_date) || lifecycle.registrationCloseDate,
+    programEndDate: formatDateForInput(e.program_end_date) || lifecycle.programEndDate,
     active: e.active,
   };
 }
@@ -298,11 +397,16 @@ export async function adminUpdateEvent(input: {
   seats: number;
   description: string;
   speakers: string[];
+  registrationOpenDate: string;
+  registrationCloseDate: string;
+  programEndDate: string;
   active: boolean;
 }) {
+  const lifecycle = defaultEventLifecycleDates(input.date);
   await dbQuery(
     `UPDATE events
-     SET title=?, type=?, event_date=?, event_time=?, venue=?, price=?, seats=?, description=?, speakers_json=?, active=?
+     SET title=?, type=?, event_date=?, event_time=?, venue=?, price=?, seats=?, description=?, speakers_json=?,
+         registration_open_date=?, registration_close_date=?, program_end_date=?, active=?
      WHERE slug=?`,
     [
       input.title,
@@ -314,6 +418,9 @@ export async function adminUpdateEvent(input: {
       input.seats,
       input.description,
       JSON.stringify(input.speakers),
+      formatDateForInput(input.registrationOpenDate) || lifecycle.registrationOpenDate,
+      formatDateForInput(input.registrationCloseDate) || lifecycle.registrationCloseDate,
+      formatDateForInput(input.programEndDate) || lifecycle.programEndDate,
       input.active ? 1 : 0,
       input.slug,
     ],
