@@ -1,4 +1,4 @@
-import { defaultEventLifecycleDates, formatDateForInput } from "@/lib/format-date-input";
+import { defaultCourseLifecycleDates, defaultEventLifecycleDates, formatDateForInput } from "@/lib/format-date-input";
 import { dbQuery } from "./db";
 
 function parseDbStringArray(value: unknown): string[] {
@@ -123,10 +123,12 @@ export async function adminCreateCourse(input: {
     { title: "Foundations", lessons: ["Concepts", "Setup", "Hands-on lab"] },
     { title: "Applied practice", lessons: ["Project walkthrough", "Debugging clinic"] },
   ];
+  const lifecycle = defaultCourseLifecycleDates(input.startDate);
   await dbQuery(
     `INSERT INTO courses
-     (slug, title, tagline, description, level, duration, start_date, price, seats, enrolled, tags_json, instructor, modules_json, active)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 1)`,
+     (slug, title, tagline, description, level, duration, start_date, price, seats, enrolled, tags_json, instructor, modules_json,
+      registration_open_date, registration_close_date, program_end_date, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 1)`,
     [
       input.slug,
       input.title,
@@ -140,6 +142,9 @@ export async function adminCreateCourse(input: {
       JSON.stringify([input.level, "Cloud Vaathi"]),
       "Cloud Vaathi Team",
       JSON.stringify(starterModules),
+      lifecycle.registrationOpenDate,
+      lifecycle.registrationCloseDate,
+      lifecycle.programEndDate,
     ],
   );
 }
@@ -159,15 +164,21 @@ export async function adminGetCourseBySlug(slug: string) {
       instructor: string;
       tags_json: unknown;
       modules_json: unknown;
+      registration_open_date: string | null;
+      registration_close_date: string | null;
+      program_end_date: string | null;
       active: number;
     }>
   >(
-    `SELECT slug,title,tagline,description,level,duration,start_date,price,seats,instructor,tags_json,modules_json,active
+    `SELECT slug,title,tagline,description,level,duration,start_date,price,seats,instructor,tags_json,modules_json,
+            registration_open_date, registration_close_date, program_end_date, active
      FROM courses WHERE slug=? LIMIT 1`,
     [slug],
   );
   const c = rows[0];
   if (!c) return null;
+  const startDate = formatDateForInput(c.start_date);
+  const lifecycle = defaultCourseLifecycleDates(startDate);
   return {
     slug: c.slug,
     title: c.title,
@@ -175,12 +186,17 @@ export async function adminGetCourseBySlug(slug: string) {
     description: c.description,
     level: c.level,
     duration: c.duration,
-    startDate: formatDateForInput(c.start_date),
+    startDate,
     price: c.price,
     seats: c.seats,
     instructor: c.instructor,
     tags: parseDbStringArray(c.tags_json),
     modules: parseDbModules(c.modules_json),
+    registrationOpenDate:
+      formatDateForInput(c.registration_open_date) || lifecycle.registrationOpenDate,
+    registrationCloseDate:
+      formatDateForInput(c.registration_close_date) || lifecycle.registrationCloseDate,
+    programEndDate: formatDateForInput(c.program_end_date) || lifecycle.programEndDate,
     active: c.active,
   };
 }
@@ -198,12 +214,17 @@ export async function adminUpdateCourse(input: {
   instructor: string;
   tags: string[];
   modules: Array<{ title: string; lessons: string[] }>;
+  registrationOpenDate: string;
+  registrationCloseDate: string;
+  programEndDate: string;
   active: boolean;
 }) {
+  const lifecycle = defaultCourseLifecycleDates(input.startDate);
   await dbQuery(
     `UPDATE courses
      SET title=?, tagline=?, description=?, level=?, duration=?, start_date=?, price=?, seats=?,
-         instructor=?, tags_json=?, modules_json=?, active=?
+         instructor=?, tags_json=?, modules_json=?,
+         registration_open_date=?, registration_close_date=?, program_end_date=?, active=?
      WHERE slug=?`,
     [
       input.title,
@@ -217,6 +238,9 @@ export async function adminUpdateCourse(input: {
       input.instructor,
       JSON.stringify(input.tags),
       JSON.stringify(input.modules),
+      formatDateForInput(input.registrationOpenDate) || lifecycle.registrationOpenDate,
+      formatDateForInput(input.registrationCloseDate) || lifecycle.registrationCloseDate,
+      formatDateForInput(input.programEndDate) || lifecycle.programEndDate,
       input.active ? 1 : 0,
       input.slug,
     ],

@@ -379,6 +379,9 @@ export const adminUpdateCourseFn = createServerFn({ method: "POST" })
             lessons: z.array(z.string().min(1)),
           }),
         ),
+        registrationOpenDate: z.string().min(1),
+        registrationCloseDate: z.string().min(1),
+        programEndDate: z.string().min(1),
         active: z.boolean(),
       })
       .parse(data),

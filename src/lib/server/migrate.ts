@@ -54,10 +54,12 @@ async function ensureDateColumn(conn: MysqlConn, table: string, column: string):
   }
 }
 
-let lifecycleColumnsReady = false;
+let lifecycleColumnsReadyVersion = 0;
+/** Bump when lifecycle column / backfill logic changes so warm isolates re-apply. */
+const LIFECYCLE_COLUMNS_VERSION = 2;
 
 async function ensureProgramLifecycleColumns(conn: MysqlConn): Promise<void> {
-  if (lifecycleColumnsReady) return;
+  if (lifecycleColumnsReadyVersion >= LIFECYCLE_COLUMNS_VERSION) return;
 
   for (const table of ["courses", "events"] as const) {
     for (const column of ["registration_open_date", "registration_close_date", "program_end_date"] as const) {
@@ -82,7 +84,43 @@ async function ensureProgramLifecycleColumns(conn: MysqlConn): Promise<void> {
     WHERE registration_open_date IS NULL
   `);
 
-  lifecycleColumnsReady = true;
+  // Rescheduled programs: start moved forward, close left in the past → public shows Registration Closed.
+  await conn.query(`
+    UPDATE courses
+    SET
+      registration_close_date = start_date,
+      registration_open_date = COALESCE(
+        registration_open_date,
+        DATE_SUB(start_date, INTERVAL 30 DAY)
+      ),
+      program_end_date = CASE
+        WHEN program_end_date IS NULL OR program_end_date < start_date THEN start_date
+        ELSE program_end_date
+      END
+    WHERE start_date > CURDATE()
+      AND registration_close_date IS NOT NULL
+      AND registration_close_date <= CURDATE()
+      AND registration_close_date < start_date
+  `);
+  await conn.query(`
+    UPDATE events
+    SET
+      registration_close_date = event_date,
+      registration_open_date = COALESCE(
+        registration_open_date,
+        DATE_SUB(event_date, INTERVAL 21 DAY)
+      ),
+      program_end_date = CASE
+        WHEN program_end_date IS NULL OR program_end_date < event_date THEN event_date
+        ELSE program_end_date
+      END
+    WHERE event_date > CURDATE()
+      AND registration_close_date IS NOT NULL
+      AND registration_close_date <= CURDATE()
+      AND registration_close_date < event_date
+  `);
+
+  lifecycleColumnsReadyVersion = LIFECYCLE_COLUMNS_VERSION;
 }
 
 async function runBootstrapOnce(): Promise<void> {
@@ -115,8 +153,8 @@ async function runBootstrapOnce(): Promise<void> {
 }
 
 export async function ensureDatabaseReady(): Promise<void> {
-  if (bootstrapCompletedInIsolate && lifecycleColumnsReady) return;
-  if (bootstrapCompletedInIsolate && !lifecycleColumnsReady) {
+  if (bootstrapCompletedInIsolate && lifecycleColumnsReadyVersion >= LIFECYCLE_COLUMNS_VERSION) return;
+  if (bootstrapCompletedInIsolate && lifecycleColumnsReadyVersion < LIFECYCLE_COLUMNS_VERSION) {
     const conn = await openMysqlBootstrapConnection();
     await ensureProgramLifecycleColumns(conn);
     return;

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { formatDateForInput } from "@/lib/format-date-input";
+import { defaultCourseLifecycleDates, formatDateForInput } from "@/lib/format-date-input";
 import { adminCourseBySlugFn, adminUpdateCourseFn } from "@/lib/rpc";
 import { getSessionToken } from "@/lib/session-client";
 
@@ -15,6 +15,7 @@ function AdminCourseEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [savedMsg, setSavedMsg] = useState("");
   const [form, setForm] = useState({
     slug,
     title: "",
@@ -28,6 +29,9 @@ function AdminCourseEditor() {
     instructor: "",
     tagsText: "",
     modules: [{ title: "", lessons: [""] }] as Module[],
+    registrationOpenDate: "",
+    registrationCloseDate: "",
+    programEndDate: "",
     active: true,
   });
 
@@ -50,6 +54,9 @@ function AdminCourseEditor() {
           instructor: c.instructor,
           tagsText: c.tags.join(", "),
           modules: c.modules.length ? c.modules : [{ title: "", lessons: [""] }],
+          registrationOpenDate: formatDateForInput(c.registrationOpenDate),
+          registrationCloseDate: formatDateForInput(c.registrationCloseDate),
+          programEndDate: formatDateForInput(c.programEndDate),
           active: !!c.active,
         });
       })
@@ -58,6 +65,14 @@ function AdminCourseEditor() {
   }, [slug]);
 
   if (loading) return <div className="p-6">Loading course...</div>;
+
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  const staleClose =
+    form.startDate &&
+    form.registrationCloseDate &&
+    form.registrationCloseDate < form.startDate &&
+    form.registrationCloseDate <= today &&
+    form.startDate > today;
 
   return (
     <div className="space-y-6">
@@ -71,11 +86,20 @@ function AdminCourseEditor() {
         </Link>
       </div>
 
+      {staleClose ? (
+        <p className="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Registration close date ({form.registrationCloseDate}) is in the past while the course starts{" "}
+          {form.startDate}. The public site will show <strong>Registration Closed</strong> until you update the
+          registration window below (or change the start date, which resets the window).
+        </p>
+      ) : null}
+
       <form
         className="space-y-4 rounded-2xl glass p-5"
         onSubmit={async (e) => {
           e.preventDefault();
           setError("");
+          setSavedMsg("");
           const token = getSessionToken();
           if (!token) return;
           try {
@@ -105,9 +129,13 @@ function AdminCourseEditor() {
                 instructor: form.instructor,
                 tags,
                 modules,
+                registrationOpenDate: form.registrationOpenDate,
+                registrationCloseDate: form.registrationCloseDate,
+                programEndDate: form.programEndDate,
                 active: form.active,
               },
             });
+            setSavedMsg(form.active ? "Saved and published." : "Saved as draft (unpublished).");
           } catch (err) {
             setError(err instanceof Error ? err.message : "Save failed");
           } finally {
@@ -120,11 +148,54 @@ function AdminCourseEditor() {
           <Input label="Tagline" value={form.tagline} onChange={(v) => setForm((s) => ({ ...s, tagline: v }))} />
           <Input label="Instructor" value={form.instructor} onChange={(v) => setForm((s) => ({ ...s, instructor: v }))} />
           <Input label="Duration" value={form.duration} onChange={(v) => setForm((s) => ({ ...s, duration: v }))} />
-          <Input label="Start date" type="date" value={form.startDate} onChange={(v) => setForm((s) => ({ ...s, startDate: v }))} />
+          <Input
+            label="Start date"
+            type="date"
+            value={form.startDate}
+            onChange={(v) => {
+              const lifecycle = defaultCourseLifecycleDates(v);
+              setForm((s) => ({
+                ...s,
+                startDate: v,
+                registrationOpenDate: lifecycle.registrationOpenDate,
+                registrationCloseDate: lifecycle.registrationCloseDate,
+                programEndDate: lifecycle.programEndDate,
+              }));
+            }}
+          />
           <Input label="Level" value={form.level} onChange={(v) => setForm((s) => ({ ...s, level: v as typeof form.level }))} />
           <Input label="Price" type="number" value={String(form.price)} onChange={(v) => setForm((s) => ({ ...s, price: Number(v) }))} />
           <Input label="Seats" type="number" value={String(form.seats)} onChange={(v) => setForm((s) => ({ ...s, seats: Number(v) }))} />
         </div>
+
+        <div className="space-y-2 rounded-xl border border-border/50 bg-background/30 p-4">
+          <p className="text-sm font-semibold">Registration window</p>
+          <p className="text-xs text-muted-foreground">
+            The public site uses these dates for Upcoming / Registration Closed / In progress. Changing the start date
+            resets this window (open 30 days before; close and end on start day).
+          </p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input
+              label="Registration opens"
+              type="date"
+              value={form.registrationOpenDate}
+              onChange={(v) => setForm((s) => ({ ...s, registrationOpenDate: v }))}
+            />
+            <Input
+              label="Registration closes"
+              type="date"
+              value={form.registrationCloseDate}
+              onChange={(v) => setForm((s) => ({ ...s, registrationCloseDate: v }))}
+            />
+            <Input
+              label="Program end"
+              type="date"
+              value={form.programEndDate}
+              onChange={(v) => setForm((s) => ({ ...s, programEndDate: v }))}
+            />
+          </div>
+        </div>
+
         <Input label="Tags (comma separated)" value={form.tagsText} onChange={(v) => setForm((s) => ({ ...s, tagsText: v }))} />
         <label className="block">
           <span className="mb-1 block text-xs text-muted-foreground">Description</span>
@@ -245,11 +316,16 @@ function AdminCourseEditor() {
         </div>
         <label className="inline-flex items-center gap-2 text-sm">
           <input type="checkbox" checked={form.active} onChange={(e) => setForm((s) => ({ ...s, active: e.target.checked }))} />
-          Active
+          Published (visible on the public site)
         </label>
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
-        <button className="rounded bg-gradient-neon px-4 py-2 text-xs font-semibold text-black">
-          {saving ? "Saving..." : "Save changes"}
+        {savedMsg ? <p className="text-xs text-emerald-300">{savedMsg}</p> : null}
+        <button
+          type="submit"
+          className="rounded bg-gradient-neon px-4 py-2 text-xs font-semibold text-black disabled:opacity-50"
+          disabled={saving}
+        >
+          {saving ? "Saving..." : form.active ? "Save & publish" : "Save draft"}
         </button>
       </form>
     </div>

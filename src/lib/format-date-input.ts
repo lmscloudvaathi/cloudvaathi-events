@@ -46,3 +46,17 @@ export function defaultEventLifecycleDates(eventDate: string): {
     programEndDate: date,
   };
 }
+
+/** Default registration window for courses (open 30 days before; close on start day). */
+export function defaultCourseLifecycleDates(startDate: string): {
+  registrationOpenDate: string;
+  registrationCloseDate: string;
+  programEndDate: string;
+} {
+  const date = formatDateForInput(startDate);
+  return {
+    registrationOpenDate: shiftIsoDate(date, -30),
+    registrationCloseDate: date,
+    programEndDate: date,
+  };
+}
