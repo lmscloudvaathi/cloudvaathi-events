@@ -56,21 +56,21 @@ export const TRUST_STATS = [
 
 export const CREDENTIAL_SNAPSHOT = ["CISM", "CISSP", "CCSP", "AZ-500", "TOGAF", "AAIA"] as const;
 
-/** Mentor intro + teaching demos on the Cloud Vaathi channel. Captions available in the player. */
+/** Sample session demos (Cloud vs AI track). */
 export type SampleSessionTrack = "cloud" | "ai";
 
 export const SAMPLE_SESSIONS = {
   cloud: {
     youtubeId: "mwZ-epYrjOQ",
-    title: "Cloud demo — Virtual Network & NSG port filtering",
-    thumbnailAlt: "Cloud Vaathi demo on Azure Virtual Network and NSG port filtering",
-    ctaLabel: "Watch Cloud Sample",
+    title: "Virtual Network & NSG port filtering",
+    thumbnailAlt: "Cloud Vaathi sample session on Virtual Network and NSG port filtering",
+    ctaLabel: "Watch sample",
   },
   ai: {
     youtubeId: "BeGDGyWEZqA",
-    title: "AI demo — Retrieval-Augmented Generation (RAG)",
-    thumbnailAlt: "Cloud Vaathi demo on Retrieval-Augmented Generation (RAG)",
-    ctaLabel: "Watch AI Sample",
+    title: "Retrieval-Augmented Generation (RAG)",
+    thumbnailAlt: "Cloud Vaathi sample session on Retrieval-Augmented Generation",
+    ctaLabel: "Watch sample",
   },
 } as const satisfies Record<
   SampleSessionTrack,

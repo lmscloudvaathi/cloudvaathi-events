@@ -167,11 +167,6 @@ function EventDetail() {
 
               <section className="mt-12">
                 <h2 className="font-display text-2xl font-bold">Sample session</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {program.category === "AI & GenAI"
-                    ? "AI demo for this track. Opens on click. No autoplay. Captions can be enabled in the player."
-                    : "Cloud demo for this track. Opens on click. No autoplay. Captions can be enabled in the player."}
-                </p>
                 <div className="mt-4 max-w-xl">
                   <SampleSessionButton variant="card" category={program.category} />
                 </div>
