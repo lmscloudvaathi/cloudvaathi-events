@@ -648,8 +648,8 @@ function GuestRegisterGate({
   event,
 }: {
   slug: string;
-  course: { title: string } | null;
-  event: { title: string } | null;
+  course: { title: string; price: number } | null;
+  event: { title: string; price: number } | null;
 }) {
   const item = course ?? event;
   const backTo = course ? `/courses/${slug}` : `/events/${slug}`;
@@ -662,9 +662,12 @@ function GuestRegisterGate({
       <section className="flex justify-center px-4 py-16">
         <div className="w-full max-w-lg rounded-2xl glass p-8 text-center glow-violet">
           <h1 className="font-display text-2xl font-bold">Sign in to register</h1>
+          {item ? (
+            <p className="mt-4 font-display text-3xl font-bold text-gradient-neon">{formatINR(item.price)}</p>
+          ) : null}
           <p className="mt-3 text-sm text-muted-foreground">
             Sign in or create an account to register for{" "}
-            <span className="font-semibold text-foreground">{item?.title}</span>. The fee is shown after you sign in.
+            <span className="font-semibold text-foreground">{item?.title}</span>.
           </p>
           <div className="mt-8 flex flex-col gap-3">
             <Link
