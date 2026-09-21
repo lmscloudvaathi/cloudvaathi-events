@@ -53,7 +53,12 @@ export function EventsCatalog({ courses, events }: CatalogData) {
 
   const filtered = programs.filter((p) => {
     const st = programStatus(p);
-    if (statusFilter !== "all" && st !== statusFilter) return false;
+    // Completed programs belong only under Past Events — not in the active catalog grid.
+    if (statusFilter === "all") {
+      if (st === "completed") return false;
+    } else if (st !== statusFilter) {
+      return false;
+    }
     if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
     return true;
   });
@@ -63,7 +68,9 @@ export function EventsCatalog({ courses, events }: CatalogData) {
   const closed = programs.filter((p) => programStatus(p) === "registration_closed");
   const past = programs.filter((p) => programStatus(p) === "completed");
 
-  const showStacked = statusFilter === "upcoming" && categoryFilter === "all";
+  // "All" and "Upcoming" use the stacked layout so completed never mix into active sections.
+  const showStacked =
+    (statusFilter === "upcoming" || statusFilter === "all") && categoryFilter === "all";
 
   return (
     <div className="relative min-h-screen">
