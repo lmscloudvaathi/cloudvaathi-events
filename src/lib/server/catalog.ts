@@ -139,7 +139,7 @@ export async function getCourseBySlug(slug: string) {
     >
   >(
     `SELECT slug,title,tagline,description,level,duration,start_date,registration_open_date,registration_close_date,program_end_date,price,seats,enrolled,tags_json,instructor,modules_json
-     FROM courses WHERE slug=? AND active=1 LIMIT 1`,
+     FROM courses WHERE LOWER(TRIM(slug)) = LOWER(TRIM(?)) AND active=1 LIMIT 1`,
     [slug],
   );
   const r = rows[0];
@@ -214,7 +214,7 @@ export async function getEventBySlug(slug: string) {
     >
   >(
     `SELECT slug,title,type,event_date,event_time,venue,registration_open_date,registration_close_date,program_end_date,price,seats,registered,description,speakers_json
-     FROM events WHERE slug=? AND active=1 LIMIT 1`,
+     FROM events WHERE LOWER(TRIM(slug)) = LOWER(TRIM(?)) AND active=1 LIMIT 1`,
     [slug],
   );
   const r = rows[0];

@@ -72,12 +72,25 @@ export async function seedInitialData() {
   }
 
   const env = getEnv();
-  const adminHash = await bcrypt.hash(env.ADMIN_SEED_PASSWORD, 12);
+  const email = env.ADMIN_SEED_EMAIL.toLowerCase();
+  const existing = await dbQuery<Array<{ id: number }>>(
+    `SELECT id FROM users WHERE email = ? LIMIT 1`,
+    [email],
+  );
+  if (existing[0]) {
+    // Do not bcrypt.hash on every Worker cold start — that burns CPU and can 503 logins (Error 1102).
+    await dbQuery(`UPDATE users SET name = ?, role = 'admin', email_verified = 1 WHERE email = ?`, [
+      env.ADMIN_SEED_NAME,
+      email,
+    ]);
+    return;
+  }
+
+  const { BCRYPT_ROUNDS } = await import("./auth");
+  const adminHash = await bcrypt.hash(env.ADMIN_SEED_PASSWORD, BCRYPT_ROUNDS);
   await dbQuery(
     `INSERT INTO users (name, email, password_hash, role, email_verified)
-     VALUES (?, ?, ?, 'admin', 1)
-     ON DUPLICATE KEY UPDATE
-     name=VALUES(name), password_hash=VALUES(password_hash), role='admin', email_verified=1`,
-    [env.ADMIN_SEED_NAME, env.ADMIN_SEED_EMAIL.toLowerCase(), adminHash],
+     VALUES (?, ?, ?, 'admin', 1)`,
+    [env.ADMIN_SEED_NAME, email, adminHash],
   );
 }

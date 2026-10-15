@@ -47,6 +47,31 @@ function todayYmdKolkata(): string {
   return ymdFromUtcDate(new Date());
 }
 
+function addDaysIso(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+function inferEndFromDuration(start: string, duration: string | null | undefined): string {
+  if (!duration) return start;
+  const weeks = duration.match(/(\d+)\s*week/i);
+  if (weeks) return addDaysIso(start, Number(weeks[1]) * 7);
+  const days = duration.match(/(\d+)\s*day/i);
+  if (days) return addDaysIso(start, Math.max(0, Number(days[1]) - 1));
+  return start;
+}
+
+function earlierYmd(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a < b ? a : b;
+}
+
 export function computeDiscountedPrice(
   listPrice: number,
   discountType: "percent" | "fixed",
@@ -77,6 +102,107 @@ export type ResolveCouponErr = { ok: false; message: string };
 
 export type ResolveCouponResult = ResolveCouponOk | ResolveCouponErr;
 
+type ProgramTimeline = {
+  slug: string;
+  title: string;
+  active: number;
+  startDate: string;
+  endDate: string;
+  registrationCloseDate: string;
+};
+
+async function loadProgramTimeline(
+  itemType: "course" | "event",
+  itemSlug: string,
+): Promise<ProgramTimeline | null> {
+  const slug = itemSlug.trim();
+  if (!slug) return null;
+
+  if (itemType === "course") {
+    const rows = await dbQuery<
+      Array<{
+        slug: string;
+        title: string;
+        active: number;
+        start_date: string | Date | null;
+        program_end_date: string | Date | null;
+        registration_close_date: string | Date | null;
+        duration: string | null;
+      }>
+    >(
+      `SELECT slug, title, active, start_date, program_end_date, registration_close_date, duration
+       FROM courses WHERE LOWER(TRIM(slug)) = LOWER(?) LIMIT 1`,
+      [slug],
+    );
+    const r = rows[0];
+    if (!r) return null;
+    const start = parseDbDateToYmd(r.start_date) ?? "";
+    const storedEnd = parseDbDateToYmd(r.program_end_date);
+    const end =
+      storedEnd && storedEnd !== start ? storedEnd : inferEndFromDuration(start, r.duration);
+    const close = parseDbDateToYmd(r.registration_close_date) ?? start;
+    return {
+      slug: r.slug,
+      title: r.title,
+      active: r.active,
+      startDate: start,
+      endDate: end < start ? start : end,
+      registrationCloseDate: close,
+    };
+  }
+
+  const rows = await dbQuery<
+    Array<{
+      slug: string;
+      title: string;
+      active: number;
+      event_date: string | Date | null;
+      program_end_date: string | Date | null;
+      registration_close_date: string | Date | null;
+    }>
+  >(
+    `SELECT slug, title, active, event_date, program_end_date, registration_close_date
+     FROM events WHERE LOWER(TRIM(slug)) = LOWER(?) LIMIT 1`,
+    [slug],
+  );
+  const r = rows[0];
+  if (!r) return null;
+  const start = parseDbDateToYmd(r.event_date) ?? "";
+  const end = parseDbDateToYmd(r.program_end_date) ?? start;
+  const close = parseDbDateToYmd(r.registration_close_date) ?? start;
+  return {
+    slug: r.slug,
+    title: r.title,
+    active: r.active,
+    startDate: start,
+    endDate: end < start ? start : end,
+    registrationCloseDate: close,
+  };
+}
+
+/** Resolve slug casing to the canonical DB value; throws if missing or not published. */
+async function resolveCanonicalScope(
+  itemType: "course" | "event",
+  itemSlug: string,
+): Promise<{ item_type: "course" | "event"; item_slug: string }> {
+  const program = await loadProgramTimeline(itemType, itemSlug);
+  if (!program) {
+    throw new Error(
+      itemType === "course"
+        ? `Course not found: ${itemSlug}`
+        : `Event not found: ${itemSlug}`,
+    );
+  }
+  if (Number(program.active) !== 1) {
+    throw new Error(
+      itemType === "course"
+        ? `Course is not active: ${itemSlug}`
+        : `Event is not active: ${itemSlug}`,
+    );
+  }
+  return { item_type: itemType, item_slug: program.slug };
+}
+
 export async function resolveCouponForCheckout(
   codeRaw: string | undefined | null,
   itemType: "course" | "event",
@@ -87,7 +213,8 @@ export async function resolveCouponForCheckout(
   if (!code) {
     return { ok: false, message: "Enter a coupon code" };
   }
-  const rows = await dbQuery<
+
+  const coupons = await dbQuery<
     Array<{
       id: number;
       discount_type: "percent" | "fixed";
@@ -99,15 +226,16 @@ export async function resolveCouponForCheckout(
       valid_until: string | Date | null;
     }>
   >(
-    `SELECT c.id, c.discount_type, c.discount_value, c.active, c.max_uses, c.uses_count, c.valid_from, c.valid_until
-     FROM coupons c
-     INNER JOIN coupon_scopes s ON s.coupon_id = c.id AND s.item_type = ? AND s.item_slug = ?
-     WHERE c.code = ? LIMIT 1`,
-    [itemType, itemSlug, code],
+    `SELECT id, discount_type, discount_value, active, max_uses, uses_count, valid_from, valid_until
+     FROM coupons WHERE code = ? LIMIT 1`,
+    [code],
   );
-  const c = rows[0];
-  if (!c || !c.active) {
-    return { ok: false, message: "Invalid coupon for this item" };
+  const c = coupons[0];
+  if (!c) {
+    return { ok: false, message: "Coupon code not found" };
+  }
+  if (!c.active) {
+    return { ok: false, message: "This coupon is no longer active" };
   }
   if (c.discount_type === "percent" && (c.discount_value < 1 || c.discount_value > 100)) {
     return { ok: false, message: "Coupon is misconfigured (percent)" };
@@ -118,15 +246,85 @@ export async function resolveCouponForCheckout(
   if (c.max_uses != null && c.uses_count >= c.max_uses) {
     return { ok: false, message: "This coupon has reached its usage limit" };
   }
+
+  const scopes = await dbQuery<Array<{ item_type: string; item_slug: string }>>(
+    `SELECT item_type, item_slug FROM coupon_scopes WHERE coupon_id = ?`,
+    [c.id],
+  );
+  if (!scopes.length) {
+    return {
+      ok: false,
+      message: "This coupon is not linked to any course or event. Ask the admin to edit it.",
+    };
+  }
+
+  const slugNorm = itemSlug.trim().toLowerCase();
+  const typeNorm = itemType.trim().toLowerCase();
+  const scopeHit = scopes.find(
+    (s) =>
+      String(s.item_type).trim().toLowerCase() === typeNorm &&
+      String(s.item_slug).trim().toLowerCase() === slugNorm,
+  );
+  if (!scopeHit) {
+    const labels = scopes
+      .map((s) => `${s.item_type}:${s.item_slug}`)
+      .slice(0, 3)
+      .join(", ");
+    return {
+      ok: false,
+      message: `This coupon is not valid for this ${itemType}. It applies to: ${labels}${scopes.length > 3 ? "…" : ""}`,
+    };
+  }
+
+  const program = await loadProgramTimeline(itemType, itemSlug);
+  if (!program) {
+    return { ok: false, message: "This course or event was not found" };
+  }
+  if (!program.active) {
+    return {
+      ok: false,
+      message: "This coupon cannot be used — the program is not published",
+    };
+  }
+
   const today = todayYmdKolkata();
+  if (program.endDate && today > program.endDate) {
+    return {
+      ok: false,
+      message: "This coupon cannot be used — the program has ended",
+    };
+  }
+
+  // Coupon window ends at the earliest of: coupon.valid_until, early registration close, program end.
+  // Match program lifecycle: registration is only "closed" when close < start (early cutoff).
+  // If close === start (common DB default), registration stays open through program end — so must coupons.
+  const couponUntil = parseDbDateToYmd(c.valid_until);
+  const regClose = program.registrationCloseDate || null;
+  const earlyRegClose =
+    regClose && program.startDate && regClose < program.startDate ? regClose : null;
+  const programCutoff = earlierYmd(earlyRegClose, program.endDate) ?? program.endDate;
+  const effectiveUntil = earlierYmd(couponUntil, programCutoff);
+  if (effectiveUntil && today > effectiveUntil) {
+    if (couponUntil && (!programCutoff || couponUntil <= programCutoff)) {
+      return { ok: false, message: "Coupon has expired" };
+    }
+    if (earlyRegClose && today > earlyRegClose && today <= program.endDate) {
+      return {
+        ok: false,
+        message: "This coupon cannot be used — registration for the program has closed",
+      };
+    }
+    return {
+      ok: false,
+      message: "This coupon cannot be used — the program timeline has ended",
+    };
+  }
+
   const fromYmd = parseDbDateToYmd(c.valid_from);
   if (fromYmd && today < fromYmd) {
     return { ok: false, message: "Coupon is not active yet" };
   }
-  const untilYmd = parseDbDateToYmd(c.valid_until);
-  if (untilYmd && today > untilYmd) {
-    return { ok: false, message: "Coupon has expired" };
-  }
+
   const { discountAmount, finalAmount } = computeDiscountedPrice(
     listPrice,
     c.discount_type,
@@ -142,12 +340,27 @@ export async function resolveCouponForCheckout(
   };
 }
 
-export async function incrementCouponUse(couponId: number): Promise<void> {
-  await dbQuery(
+/** Atomically consume one use. Returns false if the coupon hit its max_uses limit. */
+export async function tryIncrementCouponUse(couponId: number): Promise<boolean> {
+  const result = await dbQuery<ResultSetHeader>(
     `UPDATE coupons SET uses_count = uses_count + 1 WHERE id = ? AND (max_uses IS NULL OR uses_count < max_uses)`,
     [couponId],
   );
+  return (result.affectedRows ?? 0) > 0;
 }
+
+export async function incrementCouponUse(couponId: number): Promise<void> {
+  const ok = await tryIncrementCouponUse(couponId);
+  if (!ok) {
+    throw new Error("This coupon has reached its usage limit");
+  }
+}
+
+export type CouponScopeRow = {
+  item_type: "course" | "event";
+  item_slug: string;
+  title: string;
+};
 
 export type CouponListRow = {
   id: number;
@@ -160,7 +373,7 @@ export type CouponListRow = {
   uses_count: number;
   valid_from: string | null;
   valid_until: string | null;
-  scopes: Array<{ item_type: "course" | "event"; item_slug: string }>;
+  scopes: CouponScopeRow[];
 };
 
 export async function adminListCoupons(): Promise<CouponListRow[]> {
@@ -182,12 +395,28 @@ export async function adminListCoupons(): Promise<CouponListRow[]> {
      FROM coupons ORDER BY id DESC`,
   );
   const scopes = await dbQuery<
-    Array<{ coupon_id: number; item_type: "course" | "event"; item_slug: string }>
-  >(`SELECT coupon_id, item_type, item_slug FROM coupon_scopes ORDER BY coupon_id, id`);
-  const byCoupon = new Map<number, Array<{ item_type: "course" | "event"; item_slug: string }>>();
+    Array<{
+      coupon_id: number;
+      item_type: "course" | "event";
+      item_slug: string;
+      title: string | null;
+    }>
+  >(
+    `SELECT s.coupon_id, s.item_type, s.item_slug,
+            COALESCE(c.title, e.title) AS title
+     FROM coupon_scopes s
+     LEFT JOIN courses c ON s.item_type = 'course' AND LOWER(TRIM(c.slug)) = LOWER(TRIM(s.item_slug))
+     LEFT JOIN events e ON s.item_type = 'event' AND LOWER(TRIM(e.slug)) = LOWER(TRIM(s.item_slug))
+     ORDER BY s.coupon_id, s.id`,
+  );
+  const byCoupon = new Map<number, CouponScopeRow[]>();
   for (const s of scopes) {
     const list = byCoupon.get(s.coupon_id) ?? [];
-    list.push({ item_type: s.item_type, item_slug: s.item_slug });
+    list.push({
+      item_type: s.item_type,
+      item_slug: s.item_slug,
+      title: s.title?.trim() || s.item_slug,
+    });
     byCoupon.set(s.coupon_id, list);
   }
   return coupons.map((c) => ({
@@ -199,10 +428,35 @@ export async function adminListCoupons(): Promise<CouponListRow[]> {
     active: c.active,
     max_uses: c.max_uses,
     uses_count: c.uses_count,
-    valid_from: c.valid_from ? String(c.valid_from).slice(0, 10) : null,
-    valid_until: c.valid_until ? String(c.valid_until).slice(0, 10) : null,
+    valid_from: parseDbDateToYmd(c.valid_from),
+    valid_until: parseDbDateToYmd(c.valid_until),
     scopes: byCoupon.get(c.id) ?? [],
   }));
+}
+
+function isDuplicateCouponCodeError(e: unknown): boolean {
+  const err = e as { code?: string; errno?: number; message?: string };
+  return (
+    err?.code === "ER_DUP_ENTRY" ||
+    err?.errno === 1062 ||
+    /duplicate/i.test(String(err?.message ?? ""))
+  );
+}
+
+async function normalizeScopes(
+  scopes: Array<{ item_type: "course" | "event"; item_slug: string }>,
+): Promise<Array<{ item_type: "course" | "event"; item_slug: string }>> {
+  const out: Array<{ item_type: "course" | "event"; item_slug: string }> = [];
+  const seen = new Set<string>();
+  for (const s of scopes) {
+    const canonical = await resolveCanonicalScope(s.item_type, s.item_slug);
+    const key = `${canonical.item_type}::${canonical.item_slug.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(canonical);
+  }
+  if (!out.length) throw new Error("Add at least one course or event");
+  return out;
 }
 
 export async function adminCreateCoupon(input: {
@@ -225,6 +479,8 @@ export async function adminCreateCoupon(input: {
     throw new Error("Fixed discount cannot be negative");
   }
 
+  const scopes = await normalizeScopes(input.scopes);
+
   const conn = await getOrCreateMysqlConnection();
   await conn.query("START TRANSACTION");
   try {
@@ -242,7 +498,7 @@ export async function adminCreateCoupon(input: {
       ],
     );
     const couponId = ins.insertId;
-    for (const s of input.scopes) {
+    for (const s of scopes) {
       await conn.query(
         `INSERT INTO coupon_scopes (coupon_id, item_type, item_slug) VALUES (?, ?, ?)`,
         [couponId, s.item_type, s.item_slug],
@@ -251,6 +507,9 @@ export async function adminCreateCoupon(input: {
     await conn.query("COMMIT");
   } catch (e) {
     await conn.query("ROLLBACK").catch(() => {});
+    if (isDuplicateCouponCodeError(e)) {
+      throw new Error("A coupon with this code already exists");
+    }
     throw e;
   }
 }
@@ -273,6 +532,8 @@ export async function adminUpdateCoupon(input: {
     throw new Error("Fixed discount cannot be negative");
   }
 
+  const scopes = await normalizeScopes(input.scopes);
+
   const conn = await getOrCreateMysqlConnection();
   await conn.query("START TRANSACTION");
   try {
@@ -290,7 +551,7 @@ export async function adminUpdateCoupon(input: {
       ],
     );
     await conn.query(`DELETE FROM coupon_scopes WHERE coupon_id=?`, [input.id]);
-    for (const s of input.scopes) {
+    for (const s of scopes) {
       await conn.query(
         `INSERT INTO coupon_scopes (coupon_id, item_type, item_slug) VALUES (?, ?, ?)`,
         [input.id, s.item_type, s.item_slug],

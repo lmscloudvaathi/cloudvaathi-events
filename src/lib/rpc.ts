@@ -205,13 +205,19 @@ export const validateCouponFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { ensureDatabaseReady } = await import("./server/migrate");
     const { assertRateLimit, rateLimitTokenKey } = await import("./server/rate-limit");
-    const { decodeSessionToken } = await import("./server/auth");
     const { getPurchasableItem } = await import("./server/catalog");
     const { resolveCouponForCheckout } = await import("./server/coupons");
     await ensureDatabaseReady();
-    assertRateLimit(rateLimitTokenKey("validate-coupon", data.token), 60, 10 * 60 * 1000);
-    const user = decodeSessionToken(data.token);
-    if (!user) throw new Error("Unauthorized");
+    // Preview-only: no session required. Rate-limit by token when present, else by item.
+    if (data.token) {
+      assertRateLimit(rateLimitTokenKey("validate-coupon", data.token), 60, 10 * 60 * 1000);
+    } else {
+      assertRateLimit(
+        `validate-coupon:anon:${data.itemType}:${data.itemSlug}`,
+        40,
+        10 * 60 * 1000,
+      );
+    }
     const item = await getPurchasableItem(data.itemType, data.itemSlug);
     if (!item) throw new Error("Item not found");
     if (item.amount <= 0) {

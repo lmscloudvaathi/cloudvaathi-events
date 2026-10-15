@@ -5,6 +5,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
 
+  // Login uses bcrypt; Free plan (10ms CPU) kills the Worker with Error 1102 / HTTP 503.
+  // Requires Workers Paid (Standard). Raise if login still 503s after deploy.
+  "limits": {
+    "cpu_ms": 60000
+  },
+
   // Redeployed from git on every build — avoids “empty Variables” when CI only runs wrangler deploy.
   // Replace placeholders with your real TiDB/Gmail/Razorpay *public* IDs (same ideas as .env.example).
   // Passwords & PEM must NEVER live here — use: npm run cf:push-secrets (reads local .env).

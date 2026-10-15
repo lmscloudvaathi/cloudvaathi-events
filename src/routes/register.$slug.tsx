@@ -22,10 +22,23 @@ function formatDate(value: string) {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
+function decodeRouteSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function slugEquals(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 export const Route = createFileRoute("/register/$slug")({
   loader: async ({ params }) => {
-    const [course, events] = await Promise.all([getCourseFn({ data: { slug: params.slug } }), getEventsFn()]);
-    const event = events.find((e) => e.slug === params.slug) ?? null;
+    const slug = decodeRouteSlug(params.slug);
+    const [course, events] = await Promise.all([getCourseFn({ data: { slug } }), getEventsFn()]);
+    const event = events.find((e) => slugEquals(e.slug, slug)) ?? null;
     if (!course && !event) throw notFound();
     return { course, event };
   },
@@ -49,10 +62,11 @@ export const Route = createFileRoute("/register/$slug")({
 
 function RegisterPage() {
   const { course, event } = Route.useLoaderData();
-  const { slug } = Route.useParams();
+  const { slug: rawSlug } = Route.useParams();
   const { user, loading: userLoading } = useSessionUser();
   const item = course ?? event;
-  const itemType = useMemo(() => (course ? "course" : "event"), [course]);
+  const slug = item?.slug ?? decodeRouteSlug(rawSlug);
+  const itemType = useMemo<"course" | "event">(() => (course ? "course" : "event"), [course]);
   const isFree = useMemo(() => (item?.price ?? 0) <= 0, [item?.price]);
   const [done, setDone] = useState(false);
   const [registered, setRegistered] = useState(false);
@@ -70,13 +84,22 @@ function RegisterPage() {
   const [couponError, setCouponError] = useState("");
   const [couponApplying, setCouponApplying] = useState(false);
   const [appliedPricing, setAppliedPricing] = useState<{
+    code: string;
     listAmount: number;
     discountAmount: number;
     finalAmount: number;
   } | null>(null);
+  /** When true, checkout must send "" so a previously saved pending coupon is cleared. */
+  const [couponCleared, setCouponCleared] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
 
   const effectivePrice = appliedPricing?.finalAmount ?? item?.price ?? 0;
+
+  function couponCodeForCheckout(): string | undefined {
+    if (appliedPricing) return appliedPricing.code;
+    if (couponCleared) return "";
+    return undefined;
+  }
 
   useEffect(() => {
     formInitKey.current = null;
@@ -84,6 +107,7 @@ function RegisterPage() {
     setCouponInput("");
     setCouponError("");
     setAppliedPricing(null);
+    setCouponCleared(false);
   }, [slug]);
 
   useEffect(() => {
@@ -192,12 +216,7 @@ function RegisterPage() {
   async function applyCoupon() {
     setCouponError("");
     if (!item || isFree) return;
-    const token = getSessionToken();
-    if (!token) {
-      setCouponError("Please sign in to apply a coupon.");
-      return;
-    }
-    const code = couponInput.trim();
+    const code = couponInput.trim().toUpperCase().replace(/\s+/g, "");
     if (!code) {
       setCouponError("Enter a coupon code.");
       setAppliedPricing(null);
@@ -205,6 +224,7 @@ function RegisterPage() {
     }
     setCouponApplying(true);
     try {
+      const token = getSessionToken() ?? undefined;
       const r = await validateCouponFn({
         data: { token, itemType, itemSlug: item.slug, couponCode: code },
       });
@@ -213,13 +233,17 @@ function RegisterPage() {
         setAppliedPricing(null);
         return;
       }
+      setCouponInput(code);
+      setCouponCleared(false);
       setAppliedPricing({
+        code,
         listAmount: r.listAmount,
         discountAmount: r.discountAmount,
         finalAmount: r.finalAmount,
       });
     } catch (e) {
-      setCouponError(e instanceof Error ? e.message : "Coupon check failed");
+      const msg = e instanceof Error ? e.message : "Coupon check failed";
+      setCouponError(msg === "Unauthorized" ? "Please sign in again, then apply the coupon." : msg);
       setAppliedPricing(null);
     } finally {
       setCouponApplying(false);
@@ -273,7 +297,7 @@ function RegisterPage() {
           token,
           itemType,
           itemSlug: item.slug,
-          couponCode: appliedPricing ? couponInput.trim() : undefined,
+          couponCode: couponCodeForCheckout(),
         },
       });
       if (order.paidViaFullCoupon) {
@@ -309,7 +333,8 @@ function RegisterPage() {
       });
       instance.open();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment failed");
+      const msg = err instanceof Error ? err.message : "Payment failed";
+      setError(msg === "Unauthorized" ? "Please sign in again to complete payment." : msg);
     } finally {
       setLoading(false);
     }
@@ -335,7 +360,7 @@ function RegisterPage() {
           token,
           itemType,
           itemSlug: item.slug,
-          couponCode: appliedPricing ? couponInput.trim() : undefined,
+          couponCode: couponCodeForCheckout(),
         },
       });
       if (res.alreadyEnrolled) {
@@ -350,7 +375,8 @@ function RegisterPage() {
       if (user) saveRegisterFormDraft(user.id, item.slug, form);
       setRegistered(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const msg = err instanceof Error ? err.message : "Registration failed";
+      setError(msg === "Unauthorized" ? "Please sign in again to register." : msg);
     } finally {
       setLoading(false);
     }
@@ -486,8 +512,15 @@ function RegisterPage() {
                       value={couponInput}
                       disabled={loading || couponApplying}
                       onChange={(e) => {
-                        setCouponInput(e.target.value);
+                        const next = e.target.value;
+                        setCouponInput(next);
                         setCouponError("");
+                        if (appliedPricing) {
+                          const normalized = next.trim().toUpperCase().replace(/\s+/g, "");
+                          if (normalized !== appliedPricing.code) {
+                            setAppliedPricing(null);
+                          }
+                        }
                       }}
                       className="flex-1 rounded-lg border border-border/60 bg-input/40 px-3 py-2 text-sm uppercase placeholder:normal-case"
                     />
@@ -506,6 +539,8 @@ function RegisterPage() {
                         className="text-xs text-muted-foreground underline"
                         onClick={() => {
                           setAppliedPricing(null);
+                          setCouponInput("");
+                          setCouponCleared(true);
                           setCouponError("");
                         }}
                       >
@@ -520,7 +555,7 @@ function RegisterPage() {
                       (save {formatINR(appliedPricing.discountAmount)}).
                     </p>
                   ) : (
-                    <p className="text-[11px] text-muted-foreground">Optional. Must match this {itemType}.</p>
+                    <p className="text-[11px] text-muted-foreground">Optional. Must be valid for this {itemType}.</p>
                   )}
                 </div>
               ) : null}

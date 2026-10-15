@@ -1,7 +1,7 @@
 import { dbQuery } from "./db";
 import { getPurchasableItem, getProgramNotifyDetails } from "./catalog";
 import { createRazorpayOrder, verifyRazorpaySignature } from "./razorpay";
-import { incrementCouponUse, resolveCouponForCheckout } from "./coupons";
+import { incrementCouponUse, resolveCouponForCheckout, tryIncrementCouponUse } from "./coupons";
 import {
   sendAdminNewRegistrationEmail,
   sendEnrollmentConfirmationEmail,
@@ -9,6 +9,30 @@ import {
 } from "./mailer";
 
 type ItemKind = "course" | "event";
+
+async function assertSeatAvailable(itemType: ItemKind, itemSlug: string): Promise<void> {
+  if (itemType === "course") {
+    const rows = await dbQuery<Array<{ seats: number; enrolled: number }>>(
+      `SELECT seats, enrolled FROM courses WHERE slug=? AND active=1 LIMIT 1`,
+      [itemSlug],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("Item not found");
+    if (row.seats > 0 && row.enrolled >= row.seats) {
+      throw new Error("This cohort is full — no seats left.");
+    }
+    return;
+  }
+  const rows = await dbQuery<Array<{ seats: number; registered: number }>>(
+    `SELECT seats, registered FROM events WHERE slug=? AND active=1 LIMIT 1`,
+    [itemSlug],
+  );
+  const row = rows[0];
+  if (!row) throw new Error("Item not found");
+  if (row.seats > 0 && row.registered >= row.seats) {
+    throw new Error("This event is full — no seats left.");
+  }
+}
 
 async function notifyAdminOfSuccessfulRegistration(input: {
   userId: number;
@@ -109,6 +133,10 @@ async function finalizeFullCouponEnrollment(input: {
   originalAmount: number;
   discountAmount: number;
 }) {
+  await assertSeatAvailable(input.itemType, input.itemSlug);
+  // Consume the coupon before marking Paid so max_uses cannot be oversubscribed.
+  await incrementCouponUse(input.couponId);
+
   const orderRef = `COUPON_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
   await dbQuery(
     `INSERT INTO enrollments (user_id, item_type, item_slug, order_ref, amount, payment_status, coupon_id, original_amount, discount_amount)
@@ -136,8 +164,6 @@ async function finalizeFullCouponEnrollment(input: {
   } else {
     await dbQuery(`UPDATE events SET registered = registered + 1 WHERE slug = ?`, [input.itemSlug]);
   }
-
-  await incrementCouponUse(input.couponId);
 
   try {
     await sendEnrollmentConfirmationEmail({
@@ -195,8 +221,11 @@ export async function createOrder(input: {
     throw new Error("You are already enrolled for this item.");
   }
 
-  let couponCodeForResolve = input.couponCode?.trim() || null;
-  if (!couponCodeForResolve) {
+  // undefined = inherit pending enrollment coupon; "" / explicit empty = clear coupon.
+  let couponCodeForResolve: string | null = null;
+  if (input.couponCode !== undefined) {
+    couponCodeForResolve = input.couponCode.trim() || null;
+  } else {
     const pendRows = await dbQuery<Array<{ coupon_id: number | null }>>(
       `SELECT coupon_id FROM enrollments WHERE user_id=? AND item_type=? AND item_slug=? AND payment_status='Pending' LIMIT 1`,
       [input.userId, input.itemType, input.itemSlug],
@@ -473,7 +502,11 @@ export async function confirmPayment(input: {
   );
 
   if (order.coupon_id != null) {
-    await incrementCouponUse(order.coupon_id);
+    // Payment already captured — do not fail enrollment if the use counter raced past max_uses.
+    const consumed = await tryIncrementCouponUse(order.coupon_id);
+    if (!consumed) {
+      console.error(`Coupon ${order.coupon_id} use limit hit after paid order ${order.order_ref}`);
+    }
   }
 
   if (order.item_type === "course") {

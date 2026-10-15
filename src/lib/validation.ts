@@ -28,7 +28,8 @@ export const createOrderSchema = z.object({
 });
 
 export const validateCouponSchema = z.object({
-  token: z.string().min(1),
+  /** Optional — coupon preview does not require a session; checkout re-validates when paying. */
+  token: z.string().min(1).optional(),
   itemType: z.enum(["course", "event"]),
   itemSlug: z.string().min(1),
   couponCode: z.string().min(1).max(64),
