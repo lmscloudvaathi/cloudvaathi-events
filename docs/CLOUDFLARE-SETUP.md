@@ -110,6 +110,7 @@ Try in a private window. Hard refresh if you see old nav or favicon.
 | SSL pending on new domain | Wait 5–15 min; check Custom Domain status in Workers. |
 | 522 / Worker error | Check **Workers** → **Logs**; confirm TiDB secrets and `TIDB_CA` secret. |
 | `www` not working | Add `www.cloudvaathi.in` custom domain or CNAME `www` → apex. |
+| Deploy fails: **CPU limits are not supported for the Free plan** `[code: 100328]` | Do **not** set `limits.cpu_ms` in `wrangler.jsonc` (already removed). Free plan cannot configure CPU limits. If it still fails after a clean config: (1) **Workers & Pages** → `cloudvaathi-events` → **Settings** → clear any custom **CPU time limit**, then redeploy; or (2) upgrade to [Workers Paid](https://dash.cloudflare.com/?to=/:account/workers/plans) (recommended for bcrypt/login + SSR); or (3) delete the Worker and redeploy so it is recreated without sticky limits (re-attach custom domains + re-run `npm run cf:push-secrets`). Also clear **Workers Builds** build cache once. |
 
 ---
 
