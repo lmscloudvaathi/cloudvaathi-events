@@ -5,11 +5,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
 
-  // Login uses bcrypt; Free plan (10ms CPU) kills the Worker with Error 1102 / HTTP 503.
-  // Requires Workers Paid (Standard). Raise if login still 503s after deploy.
-  "limits": {
-    "cpu_ms": 60000
-  },
+  // Do not set limits.cpu_ms here — Free plan rejects it (API error 100328).
+  // Workers Paid can raise CPU; bcrypt cost is already lowered in src/lib/server/auth.ts.
 
   // Redeployed from git on every build — avoids “empty Variables” when CI only runs wrangler deploy.
   // Replace placeholders with your real TiDB/Gmail/Razorpay *public* IDs (same ideas as .env.example).
