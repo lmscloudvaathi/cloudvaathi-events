@@ -289,7 +289,7 @@ export function MarketingHome({ courses, events }: CatalogLists) {
               when a cohort fills.
             </p>
           ) : (
-            <CardScroll className="xl:grid-cols-4">
+            <CardScroll>
               {preview.map((p) => {
                 const full = getCohortAvailability({ seats: p.seats, taken: p.taken, startDate: p.startDate }).kind === "full";
                 return (

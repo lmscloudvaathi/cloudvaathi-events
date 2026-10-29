@@ -8,14 +8,12 @@ import { JumpLink } from "@/components/jump-link";
 import { CONTACT_EMAIL, FOUNDER_NAME } from "@/lib/site-config";
 import { lmsSiteUrl } from "@/lib/site-mode-shared";
 import {
-  PROGRAM_CATEGORIES,
   courseToHubProgram,
   eventToHubProgram,
   formatProgramDate,
   programStatus,
   waitlistMailto,
   type HubProgram,
-  type ProgramCategory,
   type ProgramStatus,
 } from "@/lib/program-lifecycle";
 import type { getCoursesFn, getEventsFn } from "@/lib/rpc";
@@ -49,7 +47,6 @@ export function EventsCatalog({ courses, events }: CatalogData) {
   }, [courses, events]);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [categoryFilter, setCategoryFilter] = useState<ProgramCategory | "all">("all");
 
   const filtered = programs.filter((p) => {
     const st = programStatus(p);
@@ -59,7 +56,6 @@ export function EventsCatalog({ courses, events }: CatalogData) {
     } else if (st !== statusFilter) {
       return false;
     }
-    if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
     return true;
   });
 
@@ -69,8 +65,7 @@ export function EventsCatalog({ courses, events }: CatalogData) {
   const past = programs.filter((p) => programStatus(p) === "completed");
 
   // "All" and "Upcoming" use the stacked layout so completed never mix into active sections.
-  const showStacked =
-    (statusFilter === "upcoming" || statusFilter === "all") && categoryFilter === "all";
+  const showStacked = statusFilter === "upcoming" || statusFilter === "all";
 
   return (
     <div className="relative min-h-screen">
@@ -89,7 +84,7 @@ export function EventsCatalog({ courses, events }: CatalogData) {
       </section>
 
       <section className="sticky top-16 z-30 border-b border-border/40 bg-background/80 px-4 py-3 backdrop-blur-md sm:px-6">
-        <div className="mx-auto max-w-7xl space-y-3">
+        <div className="mx-auto max-w-7xl">
           <ChipScroll role="tablist" aria-label="Program status">
             {STATUS_TABS.map((tab) => (
               <button
@@ -105,29 +100,6 @@ export function EventsCatalog({ courses, events }: CatalogData) {
                 }`}
               >
                 {tab.label}
-              </button>
-            ))}
-          </ChipScroll>
-          <ChipScroll aria-label="Category">
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("all")}
-              className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-medium ${
-                categoryFilter === "all" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              All categories
-            </button>
-            {PROGRAM_CATEGORIES.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCategoryFilter(c)}
-                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-medium ${
-                  categoryFilter === c ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {c}
               </button>
             ))}
           </ChipScroll>
@@ -222,28 +194,19 @@ function UpcomingByCategory({ items }: { items: HubProgram[] }) {
       <span id="events" className="sr-only" />
       <div className="mx-auto max-w-7xl">
         <h2 className="font-display text-3xl font-bold">Upcoming Programs</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Grouped by category from each course and program name.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Swipe sideways to browse live cohorts and events.</p>
         {items.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
             No upcoming programs right now. Join the waitlist for the next intake.
           </p>
         ) : (
-          PROGRAM_CATEGORIES.map((cat) => {
-            const group = items.filter((p) => p.category === cat);
-            if (group.length === 0) return null;
-            return (
-              <div key={cat} className="mt-10">
-                <h3 className="font-display text-xl font-semibold text-neon-cyan">{cat}</h3>
-                <div className="mt-6">
-                  <CardScroll>
-                    {group.map((p) => (
-                      <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
-                    ))}
-                  </CardScroll>
-                </div>
-              </div>
-            );
-          })
+          <div className="mt-8">
+            <CardScroll>
+              {items.map((p) => (
+                <ProgramCard key={`${p.kind}-${p.slug}`} program={p} />
+              ))}
+            </CardScroll>
+          </div>
         )}
       </div>
     </section>

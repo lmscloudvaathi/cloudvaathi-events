@@ -31,7 +31,7 @@ export function ChipScroll({
   );
 }
 
-/** Cards swipe horizontally on small screens; grid from `md` up. */
+/** Horizontal card strip that scrolls sideways at every breakpoint. */
 export function CardScroll({
   children,
   className,
@@ -42,14 +42,13 @@ export function CardScroll({
   return (
     <div
       className={cn(
-        "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-2 [-webkit-overflow-scrolling:touch] sm:-mx-6 sm:px-6",
+        "-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-2 [-webkit-overflow-scrolling:touch] sm:-mx-6 sm:px-6 md:mx-0 md:px-0",
         hideScrollbar,
-        "md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3",
         className,
       )}
     >
       {Children.map(children, (child) => (
-        <div className="w-[min(82vw,22rem)] shrink-0 snap-start md:w-auto md:min-w-0 md:shrink">
+        <div className="w-[min(82vw,22rem)] shrink-0 snap-start">
           {child}
         </div>
       ))}
